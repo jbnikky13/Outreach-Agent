@@ -12,9 +12,13 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Sync mailbox replies
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Sync mailbox
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -22,6 +26,5 @@ jobs:
           MAIL_CLIENT_ID: ${{ secrets.MAIL_CLIENT_ID }}
           MAIL_CLIENT_SECRET: ${{ secrets.MAIL_CLIENT_SECRET }}
           MAIL_REFRESH_TOKEN: ${{ secrets.MAIL_REFRESH_TOKEN }}
-        run: |
-          echo "Reply synchronization workflow is ready."
-          # Production runner will sync new messages and stop follow-ups on reply.
+          MAIL_TENANT_ID: ${{ secrets.MAIL_TENANT_ID }}
+        run: npx tsx scripts/check-replies.ts
