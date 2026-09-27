@@ -1,0 +1,30 @@
+name: Outreach Agent - Generate Drafts
+
+on:
+  workflow_dispatch:
+    inputs:
+      campaign_id:
+        description: "Supabase campaign UUID"
+        required: true
+        type: string
+  schedule:
+    - cron: "0 8 * * 1-5"
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run outreach agent
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CAMPAIGN_ID: ${{ inputs.campaign_id }}
+        run: |
+          echo "Outreach draft generation workflow is ready."
+          echo "Campaign: $CAMPAIGN_ID"
+          # The production agent runner will generate drafts and persist them to Supabase.
