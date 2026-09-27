@@ -15,9 +15,13 @@ jobs:
   send-approved:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Send approved outreach
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Send only approved drafts
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -25,8 +29,6 @@ jobs:
           MAIL_CLIENT_ID: ${{ secrets.MAIL_CLIENT_ID }}
           MAIL_CLIENT_SECRET: ${{ secrets.MAIL_CLIENT_SECRET }}
           MAIL_REFRESH_TOKEN: ${{ secrets.MAIL_REFRESH_TOKEN }}
+          MAIL_TENANT_ID: ${{ secrets.MAIL_TENANT_ID }}
           CAMPAIGN_ID: ${{ inputs.campaign_id }}
-        run: |
-          echo "Approved-send workflow is ready."
-          echo "Campaign: $CAMPAIGN_ID"
-          # Production runner will send ONLY drafts marked approved.
+        run: npm run send:approved
