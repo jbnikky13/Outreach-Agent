@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     const supabase=createClient(process.env.SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{autoRefreshToken:false,persistSession:false}});
     const {data:prospect,error:prospectError}=await supabase.from("prospects").select("id,email,name,owner_id").eq("id",prospectId).single();
     if(prospectError||!prospect) return NextResponse.json({error:"Prospect not found."},{status:404});
-    const {data:draft,error:draftError}=await supabase.from("email_drafts").insert({prospect_id:prospectId,campaign_id:campaignId||null,subject,body,status:"approved",approved_at:new Date().toISOString(),owner_id:prospect.owner_id}).select("id").single();
+    const {data:draft,error:draftError}=await supabase.from("email_drafts").insert({prospect_id:prospectId,subject,body,status:"approved",approved_at:new Date().toISOString(),owner_id:prospect.owner_id}).select("id").single();
     if(draftError||!draft) return NextResponse.json({error:draftError?.message||"Could not save approved draft."},{status:500});
     const result: { id: string; threadId?: string } = await sendMail(prospect.email,subject,body);
     const now=new Date().toISOString();
