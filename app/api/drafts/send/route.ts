@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     if(prospectError||!prospect) return NextResponse.json({error:"Prospect not found."},{status:404});
     const {data:draft,error:draftError}=await supabase.from("email_drafts").insert({prospect_id:prospectId,campaign_id:campaignId||null,subject,body,status:"approved",approved_at:new Date().toISOString(),owner_id:prospect.owner_id}).select("id").single();
     if(draftError||!draft) return NextResponse.json({error:draftError?.message||"Could not save approved draft."},{status:500});
-    const result=await sendMail(prospect.email,subject,body);
+    const result: { id: string; threadId?: string } = await sendMail(prospect.email,subject,body);
     const now=new Date().toISOString();
     await supabase.from("email_drafts").update({status:"sent",sent_at:now,provider_message_id:result.id}).eq("id",draft.id);
     await supabase.from("prospects").update({status:"sent",last_contacted_at:now,next_follow_up_at:null}).eq("id",prospectId);
