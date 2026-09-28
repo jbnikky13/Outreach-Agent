@@ -1,0 +1,25 @@
+name: Validate Gmail Connection
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Validate Gmail OAuth
+        env:
+          MAIL_PROVIDER: ${{ secrets.MAIL_PROVIDER }}
+          MAIL_CLIENT_ID: ${{ secrets.MAIL_CLIENT_ID }}
+          MAIL_CLIENT_SECRET: ${{ secrets.MAIL_CLIENT_SECRET }}
+          MAIL_REFRESH_TOKEN: ${{ secrets.MAIL_REFRESH_TOKEN }}
+        run: npx tsx scripts/validate-gmail.ts
