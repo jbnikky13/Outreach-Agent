@@ -11,7 +11,7 @@ async function gmailToken(){
 function b64url(s:string){return Buffer.from(s).toString("base64").replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");}
 export async function sendGmail(to:string,subject:string,text:string){
   const token=await gmailToken();
-  const raw=[`To: ${to}`,`Subject: ${subject}`,`Content-Type: text/plain; charset=UTF-8`,"",text].join("\r\n");
+  const raw=[`To: ${to}`,`Subject: ${subject}`,`Content-Type: text/plain; charset="UTF-8"`,`MIME-Version: 1.0`,"",text].join("\r\n");
   const r=await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send",{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({raw:b64url(raw)})});
   if(!r.ok) throw new Error("Gmail send failed: "+await r.text());
   return await r.json() as {id:string;threadId?:string};
