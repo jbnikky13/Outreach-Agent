@@ -6,10 +6,10 @@ import {Mail,Users,Send,Clock3,CheckCircle2,Plus,Search,ChevronRight,ShieldCheck
 
 type Prospect={id:string;name:string;company:string;email:string;status:"Draft"|"Ready"|"Sent"|"Replied";reason:string;campaign_id?:string};
 const seed:Prospect[]=[
-{id:1,name:"Alex Morgan",company:"Fintech Security Co.",email:"alex@example.com",status:"Draft",reason:"Wallet security and transaction protection"},
-{id:2,name:"Jordan Lee",company:"Web3 Infrastructure",email:"jordan@example.com",status:"Ready",reason:"Developer tooling and wallet integrations"},
-{id:3,name:"Taylor Okafor",company:"Payments Platform",email:"taylor@example.com",status:"Sent",reason:"Fraud prevention and payment security"},
-{id:4,name:"Sam Rivera",company:"Crypto Custody Labs",email:"sam@example.com",status:"Replied",reason:"Institutional wallet security"},
+{id:"seed-1",name:"Alex Morgan",company:"Fintech Security Co.",email:"alex@example.com",status:"Draft",reason:"Wallet security and transaction protection"},
+{id:"seed-2",name:"Jordan Lee",company:"Web3 Infrastructure",email:"jordan@example.com",status:"Ready",reason:"Developer tooling and wallet integrations"},
+{id:"seed-3",name:"Taylor Okafor",company:"Payments Platform",email:"taylor@example.com",status:"Sent",reason:"Fraud prevention and payment security"},
+{id:"seed-4",name:"Sam Rivera",company:"Crypto Custody Labs",email:"sam@example.com",status:"Replied",reason:"Institutional wallet security"},
 ];
 
 export default function Home(){
