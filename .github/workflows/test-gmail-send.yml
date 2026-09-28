@@ -1,0 +1,32 @@
+name: Test Gmail Send
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_email:
+        description: "Your own email address for the controlled test"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  test-send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: TypeScript check
+        run: npm run typecheck
+      - name: Send controlled self-test
+        env:
+          MAIL_PROVIDER: ${{ secrets.MAIL_PROVIDER }}
+          MAIL_CLIENT_ID: ${{ secrets.MAIL_CLIENT_ID }}
+          MAIL_CLIENT_SECRET: ${{ secrets.MAIL_CLIENT_SECRET }}
+          MAIL_REFRESH_TOKEN: ${{ secrets.MAIL_REFRESH_TOKEN }}
+          TEST_EMAIL: ${{ inputs.test_email }}
+        run: npx tsx scripts/test-gmail-send.ts
