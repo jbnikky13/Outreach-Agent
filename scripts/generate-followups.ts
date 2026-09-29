@@ -35,7 +35,7 @@ async function main(){
       "",
       "CAMPAIGN:",JSON.stringify(campaign),
       "PROSPECT:",JSON.stringify({name:prospect.name,company:prospect.company,reason:prospect.reason}),
-      "Return ONLY JSON: {"subject":"...","body":"..."}"
+      'Return ONLY JSON: {"subject":"...","body":"..."}'
     ].join("\n");
 
     const response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="+encodeURIComponent(apiKey),{
