@@ -6,12 +6,14 @@ const campaignId=process.env.CAMPAIGN_ID;
 if(!campaignId) throw new Error("CAMPAIGN_ID is required");
 
 const {data:drafts,error}=await supabase.from("email_drafts")
-  .select("id,prospect_id,subject,body,status,provider_message_id,prospects!inner(email,name)")
+  .select("id,prospect_id,subject,body,status,provider_message_id,prospects!inner(email,name,campaign_id)")
   .eq("status","approved").is("provider_message_id",null);
 if(error) throw error;
 
 for(const draft of drafts??[]){
-  const prospect=draft.prospects as unknown as {email:string;name:string};
+  const prospectMeta=draft.prospects as unknown as {email:string;name:string;campaign_id:string|null};
+  if(campaignId && prospectMeta.campaign_id!==campaignId) continue;
+  const prospect=prospectMeta;
   if(!prospect?.email) { console.error("Skipping draft without recipient",draft.id); continue; }
 
   const {error:claimError}=await supabase.from("email_drafts")
