@@ -26,7 +26,26 @@ export async function POST(request: Request) {
     await supabase.from("email_drafts").update({status:"sent",sent_at:now,provider_message_id:result.id}).eq("id",draft.id);
     const nextFollowUp = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
     await supabase.from("prospects").update({status:"sent",last_contacted_at:now,next_follow_up_at:nextFollowUp}).eq("id",prospectId);
-    await supabase.from("email_threads").upsert({prospect_id:prospectId,provider:process.env.MAIL_PROVIDER,provider_message_id:result.id,provider_thread_id:result.threadId||null,last_message_at:now,awaiting_reply:true,owner_id:prospect.owner_id},{onConflict:"provider_message_id"});
+    const threadPayload = {
+      prospect_id: prospectId,
+      provider: process.env.MAIL_PROVIDER,
+      provider_message_id: result.id,
+      provider_thread_id: result.threadId || null,
+      last_message_at: now,
+      awaiting_reply: true,
+      owner_id: prospect.owner_id
+    };
+    const { error: threadInsertError } = await supabase
+      .from("email_threads")
+      .insert(threadPayload);
+    if (threadInsertError) {
+      const { data: existingThread } = await supabase
+        .from("email_threads")
+        .select("id")
+        .eq("provider_message_id", result.id)
+        .maybeSingle();
+      if (!existingThread) throw threadInsertError;
+    }
     await supabase.from("activities").insert({campaign_id:prospect.campaign_id||campaignId||null,prospect_id:prospectId,type:"email_sent",detail:subject,owner_id:prospect.owner_id});
     return NextResponse.json({success:true,messageId:result.id,threadId:result.threadId||null,draftId:draft.id});
   } catch(error) {
