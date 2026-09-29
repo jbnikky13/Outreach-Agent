@@ -16,7 +16,7 @@ A GitHub-powered personal outreach agent using Supabase for state and your own m
 
 - `.github/workflows/generate-outreach.yml` — scheduled/manual draft generation.
 - `.github/workflows/send-approved.yml` — sends only explicitly approved drafts.
-- `.github/workflows/check-replies.yml` — checks Gmail/Outlook inboxes every 30 minutes.
+- `.github/workflows/check-replies.yml` — checks Gmail/Outlook inboxes every 30 minutes and matches replies.\n- `.github/workflows/generate-followups.yml` — creates human-review follow-up drafts on weekdays.
 
 ## Required GitHub Actions secrets
 
@@ -40,4 +40,4 @@ Supabase stores campaigns, prospects, drafts, threads, activities and mailboxes 
 
 ## Status
 
-The GitHub automation, provider adapters, Supabase schema and mailbox polling foundation are implemented. Provider OAuth secrets still need to be configured before live Gmail/Outlook delivery can run.
+The GitHub automation, provider adapters, Supabase state, deployed Gmail delivery, reply matching and human-review follow-up generation are implemented. Provider OAuth secrets must remain configured in GitHub/Vercel; never commit them.
