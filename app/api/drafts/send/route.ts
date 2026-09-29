@@ -6,13 +6,21 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    const { prospectId, subject, body, campaignId } = await request.json();
+    const { prospectId, subject, body, campaignId, draftId } = await request.json();
     if (!prospectId || !subject || !body) return NextResponse.json({error:"Prospect, subject and body are required."},{status:400});
     const supabase=createClient(process.env.SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{autoRefreshToken:false,persistSession:false}});
     const {data:prospect,error:prospectError}=await supabase.from("prospects").select("id,email,name,owner_id,campaign_id").eq("id",prospectId).single();
     if(prospectError||!prospect) return NextResponse.json({error:"Prospect not found."},{status:404});
-    const {data:draft,error:draftError}=await supabase.from("email_drafts").insert({prospect_id:prospectId,subject,body,status:"approved",approved_at:new Date().toISOString(),owner_id:prospect.owner_id}).select("id").single();
-    if(draftError||!draft) return NextResponse.json({error:draftError?.message||"Could not save approved draft."},{status:500});
+    let draft: { id: string } | null = null;
+    if (draftId) {
+      const { data: updated, error: updateDraftError } = await supabase.from("email_drafts").update({ subject, body, status:"approved", approved_at:new Date().toISOString(), owner_id:prospect.owner_id }).eq("id",draftId).eq("prospect_id",prospectId).eq("status","pending").select("id").single();
+      if(updateDraftError||!updated) return NextResponse.json({error:updateDraftError?.message||"Pending draft not found."},{status:404});
+      draft=updated;
+    } else {
+      const { data: inserted, error: insertError } = await supabase.from("email_drafts").insert({prospect_id:prospectId,subject,body,status:"approved",approved_at:new Date().toISOString(),owner_id:prospect.owner_id}).select("id").single();
+      if(insertError||!inserted) return NextResponse.json({error:insertError?.message||"Could not save approved draft."},{status:500});
+      draft=inserted;
+    }
     const result: { id: string; threadId?: string } = await sendMail(prospect.email,subject,body);
     const now=new Date().toISOString();
     await supabase.from("email_drafts").update({status:"sent",sent_at:now,provider_message_id:result.id}).eq("id",draft.id);
