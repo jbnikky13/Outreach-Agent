@@ -91,20 +91,35 @@ async function markReply(
 
   if (existing) return;
 
-  const { error: threadError } = await supabase.from("email_threads").upsert(
-    {
-      prospect_id: prospectId,
-      provider,
-      provider_message_id: messageId,
-      provider_thread_id: threadId,
-      last_message_at: receivedAt,
-      last_inbound_at: receivedAt,
-      awaiting_reply: false
-    },
-    { onConflict: "provider_message_id" }
-  );
+  const threadPayload = {
+    prospect_id: prospectId,
+    provider,
+    provider_message_id: messageId,
+    provider_thread_id: threadId,
+    last_message_at: receivedAt,
+    last_inbound_at: receivedAt,
+    awaiting_reply: false
+  };
 
-  if (threadError) throw threadError;
+  const { data: insertedThread, error: insertThreadError } = await supabase
+    .from("email_threads")
+    .insert(threadPayload)
+    .select("id")
+    .maybeSingle();
+
+  if (insertThreadError) {
+    // The table intentionally has no unique constraint on provider_message_id,
+    // so handle a race/duplicate by checking again instead of using ON CONFLICT.
+    const { data: duplicate } = await supabase
+      .from("email_threads")
+      .select("id")
+      .eq("provider_message_id", messageId)
+      .maybeSingle();
+
+    if (!duplicate) throw insertThreadError;
+  } else if (!insertedThread) {
+    throw new Error("Reply thread insert returned no row");
+  }
 
   const { error: prospectError } = await supabase
     .from("prospects")
