@@ -32,11 +32,24 @@ for(const draft of drafts??[]){
       status:"sent",last_contacted_at:new Date().toISOString(),next_follow_up_at:null
     }).eq("id",draft.prospect_id);
 
-    await supabase.from("email_threads").upsert({
-      prospect_id:draft.prospect_id,provider:process.env.MAIL_PROVIDER,
-      provider_message_id:result.id,last_message_at:new Date().toISOString(),
-      awaiting_reply:true
-    },{onConflict:"provider_message_id"});
+    const threadPayload = {
+      prospect_id: draft.prospect_id,
+      provider: process.env.MAIL_PROVIDER,
+      provider_message_id: result.id,
+      last_message_at: new Date().toISOString(),
+      awaiting_reply: true
+    };
+    const { error: threadInsertError } = await supabase
+      .from("email_threads")
+      .insert(threadPayload);
+    if (threadInsertError) {
+      const { data: existingThread } = await supabase
+        .from("email_threads")
+        .select("id")
+        .eq("provider_message_id", result.id)
+        .maybeSingle();
+      if (!existingThread) throw threadInsertError;
+    }
 
     await supabase.from("activities").insert({
       campaign_id:campaignId,prospect_id:draft.prospect_id,type:"email_sent",detail:draft.subject
