@@ -36,7 +36,9 @@ async function main(){
       'Return ONLY JSON: {"subject":"...","body":"..."}'
     ].join("\n");
 
-    const response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="+encodeURIComponent(apiKey),{
+    const geminiUrl=new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent");
+    geminiUrl.searchParams.set("key",apiKey);
+    const response=await fetch(geminiUrl,{
       method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.4,responseMimeType:"application/json"}})
     });
