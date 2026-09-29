@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 const supabase=createClient(process.env.SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{autoRefreshToken:false,persistSession:false}});
-const apiKey=process.env.GEMINI_API_KEY?.trim();
+const apiKey=process.env.GEMINI_API_KEY?.trim() ?? "";
 if(!apiKey) throw new Error("GEMINI_API_KEY is required");
 
 async function main(){
