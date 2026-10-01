@@ -18,7 +18,7 @@ async function gmailToken() {
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body,
   });
-  if (!r.ok) throw new Error("Gmail token refresh failed: " + await r.text());
+  if (!r.ok) { const errorBody = await r.text(); throw new Error(`Gmail token refresh failed (${r.status}): ${errorBody}`); }
   const data = (await r.json()) as { access_token?: string };
   if (!data.access_token) throw new Error("Gmail token response did not include an access token");
   return data.access_token;
@@ -36,7 +36,7 @@ export async function sendGmail(to: string, subject: string, text: string) {
     headers: { Authorization: "Bearer " + token },
   });
   if (!profileResponse.ok) {
-    throw new Error("Unable to verify the authorized Gmail mailbox: " + await profileResponse.text());
+    throw new Error(`Unable to verify the authorized Gmail mailbox (${profileResponse.status}): ${await profileResponse.text()}`);
   }
 
   const profile = (await profileResponse.json()) as { emailAddress?: string };
@@ -64,7 +64,7 @@ export async function sendGmail(to: string, subject: string, text: string) {
     headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
     body: JSON.stringify({ raw: b64url(raw) }),
   });
-  if (!r.ok) throw new Error("Gmail send failed: " + await r.text());
+  if (!r.ok) { const errorBody = await r.text(); throw new Error(`Gmail send failed (${r.status}): ${errorBody}`); }
   return (await r.json()) as { id: string; threadId?: string };
 }
 
