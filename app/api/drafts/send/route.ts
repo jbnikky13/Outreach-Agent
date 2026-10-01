@@ -37,11 +37,12 @@ export async function POST(request: Request) {
     const attemptAt = new Date().toISOString();
     const { data: claimed, error: claimError } = await supabase
       .from("email_drafts")
-      .update({ status: "sending", send_attempted_at: attemptAt })
+      .update({ send_attempted_at: attemptAt })
       .eq("id", draftId)
       .eq("prospect_id", prospectId)
       .eq("status", "approved")
       .is("provider_message_id", null)
+      .or("send_attempted_at.is.null,send_attempted_at.lt." + new Date(Date.now() - 10 * 60 * 1000).toISOString())
       .select("id")
       .maybeSingle();
 
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
     try {
       result = await sendMail(prospect.email, subject, body);
     } catch (mailError) {
-      await supabase.from("email_drafts").update({ status: "approved" }).eq("id", draftId).eq("status", "sending").is("provider_message_id", null);
+      await supabase.from("email_drafts").update({ send_attempted_at: null }).eq("id", draftId).eq("status", "approved").is("provider_message_id", null);
       throw mailError;
     }
     const now = new Date().toISOString();
