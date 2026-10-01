@@ -25,7 +25,15 @@ async function gmailToken() {
 }
 
 function b64url(s: string) {
-  return Buffer.from(s).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return Buffer.from(s, "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function mimeWord(value: string): string {
+  return `=?UTF-8?B?${Buffer.from(value.normalize("NFC"), "utf8").toString("base64")}?=`;
+}
+
+function normalizeMailText(value: string): string {
+  return value.normalize("NFC").replace(/\r?\n/g, "\r\n");
 }
 
 export async function sendGmail(to: string, subject: string, text: string) {
@@ -52,11 +60,12 @@ export async function sendGmail(to: string, subject: string, text: string) {
   const raw = [
     `From: ${from}`,
     `To: ${to}`,
-    `Subject: ${subject}`,
-    `Content-Type: text/plain; charset="UTF-8"`,
+    `Subject: ${mimeWord(subject)}`,
     "MIME-Version: 1.0",
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
     "",
-    text,
+    Buffer.from(normalizeMailText(text), "utf8").toString("base64"),
   ].join("\r\n");
 
   const r = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
@@ -94,9 +103,9 @@ export async function sendOutlook(to: string, subject: string, text: string): Pr
     headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
     body: JSON.stringify({
       message: {
-        subject,
+        subject: subject.normalize("NFC"),
         toRecipients: [{ emailAddress: { address: to } }],
-        body: { contentType: "Text", content: text },
+        body: { contentType: "Text", content: normalizeMailText(text) },
       },
     }),
   });
