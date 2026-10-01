@@ -11,6 +11,7 @@ async function main() {
   const clientId = requireEnv("MAIL_CLIENT_ID");
   const clientSecret = requireEnv("MAIL_CLIENT_SECRET");
   const refreshToken = requireEnv("MAIL_REFRESH_TOKEN");
+  const expectedMailbox = requireEnv("MAIL_FROM_ADDRESS").toLowerCase();
 
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -40,6 +41,11 @@ async function main() {
 
   if (!profileResponse.ok || !profile.emailAddress) {
     throw new Error(`Gmail API validation failed: ${profile.error?.message ?? "unknown_error"}`);
+  }
+
+  const authorizedMailbox = profile.emailAddress.toLowerCase();
+  if (authorizedMailbox !== expectedMailbox) {
+    throw new Error(`Authorized Gmail mailbox is "${authorizedMailbox}", but MAIL_FROM_ADDRESS is "${expectedMailbox}". Re-authorize the intended Gmail account or correct the secret.`);
   }
 
   console.log("Gmail OAuth/API validation passed.");
