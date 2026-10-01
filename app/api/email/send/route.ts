@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       provider: process.env.MAIL_PROVIDER,
       from: process.env.MAIL_FROM_ADDRESS ?? null,
       messageId: result.id,
-      threadId: result.threadId ?? null,
+      threadId: "threadId" in result ? result.threadId ?? null : null,
     });
   } catch (error) {
     return NextResponse.json(
