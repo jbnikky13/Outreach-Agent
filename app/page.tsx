@@ -50,7 +50,7 @@ export default function Home(){
 
   const data = await res.json();
   if (!res.ok) {
-    setActionError(data.error || "Send failed");
+    setActionError(data.diagnostic ? `${data.error}: ${data.diagnostic.stage}${data.diagnostic.providerStatus ? ` (${data.diagnostic.providerStatus})` : ""} — ${data.diagnostic.reason || data.diagnostic.message || "Unknown provider error"}` : (data.error || "Send failed"));
     setSending(false);
     return;
   }
