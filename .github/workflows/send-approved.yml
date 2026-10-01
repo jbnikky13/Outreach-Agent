@@ -28,6 +28,7 @@ jobs:
           MAIL_CLIENT_ID: ${{ secrets.MAIL_CLIENT_ID }}
           MAIL_CLIENT_SECRET: ${{ secrets.MAIL_CLIENT_SECRET }}
           MAIL_REFRESH_TOKEN: ${{ secrets.MAIL_REFRESH_TOKEN }}
+          MAIL_FROM_ADDRESS: ${{ secrets.MAIL_FROM_ADDRESS }}
           MAIL_TENANT_ID: ${{ secrets.MAIL_TENANT_ID }}
           CAMPAIGN_ID: ${{ inputs.campaign_id }}
         run: npm run send:approved
