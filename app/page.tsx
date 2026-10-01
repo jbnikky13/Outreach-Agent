@@ -4,30 +4,25 @@ import {useRouter} from "next/navigation";
 import {getSupabaseBrowserClient} from "../lib/supabase";
 import {Mail,Users,Send,Clock3,CheckCircle2,Plus,Search,ChevronRight,ShieldCheck,Sparkles,Inbox,Settings,LayoutDashboard} from "lucide-react";
 
-type Prospect={id:string;name:string;company:string;email:string;status:"new"|"draft"|"ready"|"sent"|"replied"|"not_interested"|"bounced";reason:string;campaign_id?:string};
-const seed:Prospect[]=[
-{id:"seed-1",name:"Alex Morgan",company:"Fintech Security Co.",email:"alex@example.com",status:"draft",reason:"Wallet security and transaction protection"},
-{id:"seed-2",name:"Jordan Lee",company:"Web3 Infrastructure",email:"jordan@example.com",status:"ready",reason:"Developer tooling and wallet integrations"},
-{id:"seed-3",name:"Taylor Okafor",company:"Payments Platform",email:"taylor@example.com",status:"sent",reason:"Fraud prevention and payment security"},
-{id:"seed-4",name:"Sam Rivera",company:"Crypto Custody Labs",email:"sam@example.com",status:"replied",reason:"Institutional wallet security"},
-];
+type Prospect={id:string;name:string;company:string;email:string;status:"new"|"draft"|"ready"|"sent"|"replied"|"not_interested"|"bounced";reason:string;campaign_id?:string;draft_status?:string;draft_id?:string};
+const seed:Prospect[]=[];
 
 export default function Home(){
  const [tab,setTab]=useState("Dashboard");
- const [prospects,setProspects]=useState(seed);
+ const [prospects,setProspects]=useState<Prospect[]>(seed);
  const [selected,setSelected]=useState<Prospect|null>(null);
  const [query,setQuery]=useState("");
  const [showCampaign,setShowCampaign]=useState(false); const [showProspect,setShowProspect]=useState(false);
  const [campaign,setCampaign]=useState({name:"",topic:"",goal:"Book a conversation",audience:"",points:"",tone:"Professional",instructions:""}); const [newProspect,setNewProspect]=useState({name:"",email:"",company:"",website:"",reason:""});
  const [campaigns,setCampaigns]=useState<any[]>([]); const [selectedCampaignId,setSelectedCampaignId]=useState<string>(""); const [generating,setGenerating]=useState(false); const [draft,setDraft]=useState<{id?:string;subject:string;body:string;personalization_note:string;status?:string}|null>(null); const [loadingDraft,setLoadingDraft]=useState(false); const router=useRouter();
- useEffect(()=>{(async()=>{const s=getSupabaseBrowserClient(); const {data:{session}}=await s.auth.getSession(); if(!session){router.replace("/login");return} const {data}=await s.from("campaigns").select("id,name,topic,goal,audience,talking_points,tone,personalization_instructions,status").order("created_at",{ascending:false}); if(data)setCampaigns(data); const {data:ps}=await s.from("prospects").select("id,name,company,email,website,reason,status,campaign_id").order("created_at",{ascending:false}); if(ps)setProspects(ps as Prospect[]);})();},[router]);
+ useEffect(()=>{(async()=>{const s=getSupabaseBrowserClient(); const {data:{session}}=await s.auth.getSession(); if(!session){router.replace("/login");return} const {data}=await s.from("campaigns").select("id,name,topic,goal,audience,talking_points,tone,personalization_instructions,status").order("created_at",{ascending:false}); if(data)setCampaigns(data); const {data:ps}=await s.from("prospects").select("id,name,company,email,website,reason,status,campaign_id").order("created_at",{ascending:false}); const {data:ds}=await s.from("email_drafts").select("id,prospect_id,status,subject,body,created_at").in("status",["pending","approved"]).is("provider_message_id",null).order("created_at",{ascending:false}); if(ps){const draftMap=new Map((ds||[]).map((d:any)=>[d.prospect_id,d])); setProspects((ps as Prospect[]).map(p=>{const d=draftMap.get(p.id) as any; return d?{...p,draft_status:d.status,draft_id:d.id,status:d.status==="pending"?"draft":"ready"}:p;}));}})();},[router]);
  const filtered=useMemo(()=>prospects.filter(p=>(!selectedCampaignId||p.campaign_id===selectedCampaignId)&&(p.name+" "+p.company+" "+p.email).toLowerCase().includes(query.toLowerCase())),[prospects,query,selectedCampaignId]);
- const counts={draft:prospects.filter(p=>p.status==="draft").length,ready:prospects.filter(p=>p.status==="ready").length,sent:prospects.filter(p=>p.status==="sent").length,replied:prospects.filter(p=>p.status==="replied").length};
+ const counts={draft:prospects.filter(p=>p.draft_status==="pending").length,ready:prospects.filter(p=>p.draft_status==="approved").length,sent:prospects.filter(p=>p.status==="sent").length,replied:prospects.filter(p=>p.status==="replied").length};
  async function approveDraft(id: string) {
   const p = prospects.find((x) => x.id === id); if (!p || !draft?.id) return;
   const res = await fetch("/api/drafts/approve",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({draftId:draft.id,prospectId:id,subject:draft.subject,body:draft.body})});
   const data=await res.json(); if(!res.ok){alert(data.error||"Approval failed");return;}
-  setDraft({...draft,status:"approved"}); setProspects(items=>items.map(item=>item.id===id?{...item,status:"ready"}:item));
+  setDraft({...draft,status:"approved"}); setProspects(items=>items.map(item=>item.id===id?{...item,status:"ready",draft_status:"approved"}:item));
 }
  async function sendApprovedDraft(id: string) {
   const p = prospects.find((x) => x.id === id);
@@ -70,13 +65,13 @@ export default function Home(){
   <aside className="sidebar">
    <div className="brand"><div className="brandmark"><Sparkles size={18}/></div><div><b>Outreach Agent</b><span>Personal email copilot</span></div></div>
    <nav>{navItems.map(([label,Icon])=><button className={tab===label?"nav active":"nav"} onClick={()=>setTab(label)} key={label}><Icon size={18}/>{label}</button>)}</nav>
-   <button className="nav bottom"><Settings size={18}/>Settings</button>
+   <button className={tab==="Settings"?"nav bottom active":"nav bottom"} onClick={()=>setTab("Settings")}><Settings size={18}/>Settings</button>
   </aside>
   <section className="content">
    <header><div><div className="eyebrow">CONTROL CENTER</div><h1>{tab}</h1><p>Turn outreach goals into personalized conversations.</p></div><div className="header-actions"><button className="secondary" onClick={()=>setShowProspect(true)}><Plus size={18}/>Add prospect</button><button className="primary" onClick={()=>setShowCampaign(true)}><Plus size={18}/>New campaign</button></div></header>
    {tab==="Dashboard"&&<><div className="notice"><ShieldCheck size={20}/><div><b>Human approval is ON</b><span>The agent can draft and organize outreach, but nothing is sent without your approval.</span></div></div>
-    <div className="stats"><Stat icon={<Mail/>} label="Awaiting approval" value={counts.draft+counts.ready}/><Stat icon={<Send/>} label="Sent" value={counts.sent}/><Stat icon={<Inbox/>} label="Replies" value={counts.replied}/><Stat icon={<Clock3/>} label="Follow-ups" value={3}/></div>
-    <div className="grid"><section className="card"><div className="cardhead"><div><h2>Approval queue</h2><p>Emails ready for your review</p></div><button className="link" onClick={()=>setTab("Prospects")}>View all <ChevronRight size={15}/></button></div>{prospects.filter(p=>p.status==="draft"||p.status==="ready").map(p=><ProspectRow key={p.id} p={p} onClick={()=>{setSelectedCampaignId(p.campaign_id||selectedCampaignId);setDraft(null);setSelected(p)}}/>)}</section>
+    <div className="stats"><Stat icon={<Mail/>} label="Awaiting approval" value={counts.draft}/><Stat icon={<Send/>} label="Sent" value={counts.sent}/><Stat icon={<Inbox/>} label="Replies" value={counts.replied}/><Stat icon={<Clock3/>} label="Follow-ups" value={3}/></div>
+    <div className="grid"><section className="card"><div className="cardhead"><div><h2>Approval queue</h2><p>Emails waiting for your approval</p></div><button className="link" onClick={()=>setTab("Prospects")}>View all <ChevronRight size={15}/></button></div>{prospects.filter(p=>p.draft_status==="pending").map(p=><ProspectRow key={p.id} p={p} onClick={()=>{setSelectedCampaignId(p.campaign_id||selectedCampaignId);setDraft(null);setSelected(p)}}/>)}</section>
     <section className="card"><div className="cardhead"><div><h2>Agent activity</h2><p>Latest workflow events</p></div></div><Activity text="Draft generated" detail="Fintech Security Co." time="9 min ago"/><Activity text="Reply detected" detail="Crypto Custody Labs" time="42 min ago"/><Activity text="Follow-up scheduled" detail="Payments Platform" time="2 hr ago"/></section></div></>}
    {tab==="Prospects"&&<section className="card full"><div className="toolbar"><div><h2>Prospects</h2><p>People and companies in your outreach pipeline.</p></div><select value={selectedCampaignId} onChange={e=>setSelectedCampaignId(e.target.value)}><option value="">All campaigns</option>{campaigns.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select><div className="search"><Search size={16}/><input placeholder="Search prospects" value={query} onChange={e=>setQuery(e.target.value)}/></div></div>{filtered.map(p=><ProspectRow key={p.id} p={p} onClick={()=>{setSelectedCampaignId(p.campaign_id||"");setSelected(p)}}/>)}</section>}
    {tab==="Campaigns"&&<section className="card full"><div className="toolbar"><div><h2>Campaigns</h2><p>Define what every outreach email is about before the agent drafts it.</p></div></div><div className="campaign-grid">{campaigns.length?campaigns.map(x=><button className="campaign-card" key={x.id} onClick={()=>setSelectedCampaignId(x.id)}><b>{x.name}</b><span>{x.topic}</span><small>Goal: {x.goal} · Audience: {x.audience||"Not set"} · Tone: {x.tone||"Professional"}</small></button>):<div className="campaign-card"><b>No campaigns yet</b><span>Create your first outreach strategy.</span></div>}</div></section>}
