@@ -31,10 +31,30 @@ export async function POST(request: Request) {
       .single();
 
     if (draftError || !draft) return NextResponse.json({ error: "Draft not found." }, { status: 404 });
-    if (draft.status !== "approved") return NextResponse.json({ error: "Draft must be approved before sending." }, { status: 409 });
+    if (draft.status !== "approved") return NextResponse.json({ error: `Draft is ${draft.status}; it must be approved before sending.` }, { status: 409 });
     if (draft.provider_message_id) return NextResponse.json({ error: "This draft has already been sent." }, { status: 409 });
 
-    const result = await sendMail(prospect.email, subject, body);
+    const attemptAt = new Date().toISOString();
+    const { data: claimed, error: claimError } = await supabase
+      .from("email_drafts")
+      .update({ status: "sending", send_attempted_at: attemptAt })
+      .eq("id", draftId)
+      .eq("prospect_id", prospectId)
+      .eq("status", "approved")
+      .is("provider_message_id", null)
+      .select("id")
+      .maybeSingle();
+
+    if (claimError) throw claimError;
+    if (!claimed) return NextResponse.json({ error: "This draft is already being sent or is no longer approved." }, { status: 409 });
+
+    let result: { id: string; threadId?: string };
+    try {
+      result = await sendMail(prospect.email, subject, body);
+    } catch (mailError) {
+      await supabase.from("email_drafts").update({ status: "approved" }).eq("id", draftId).eq("status", "sending").is("provider_message_id", null);
+      throw mailError;
+    }
     const now = new Date().toISOString();
 
     const { error: updateError } = await supabase
@@ -44,7 +64,15 @@ export async function POST(request: Request) {
       .eq("status", "approved")
       .is("provider_message_id", null);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      return NextResponse.json({
+        success: true,
+        warning: "Gmail accepted the message, but the local sent-state could not be saved. Do not resend until the draft is reconciled.",
+        messageId: result.id,
+        threadId: result.threadId || null,
+        draftId,
+      }, { status: 202 });
+    }
 
     await supabase
       .from("prospects")
