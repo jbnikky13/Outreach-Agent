@@ -12,6 +12,7 @@ type Campaign = {
 };
 
 type Prospect = {
+  id: string;
   name: string;
   company: string;
   email: string;
@@ -114,13 +115,35 @@ export async function POST(request: Request) {
       personalization_note?: unknown;
     };
 
+    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    const { data: savedDraft, error: saveError } = await supabase
+      .from("email_drafts")
+      .insert({
+        prospect_id: prospect.id,
+        owner_id: (await supabase.from("prospects").select("owner_id").eq("id", prospect.id).single()).data?.owner_id ?? null,
+        subject: typeof draft.subject === "string" ? draft.subject.trim() : "",
+        body: typeof draft.body === "string" ? draft.body.trim() : "",
+        status: "pending",
+      })
+      .select("id,status,subject,body")
+      .single();
+
+    if (saveError || !savedDraft) {
+      throw new Error(saveError?.message || "Could not save generated draft.");
+    }
+
     if (typeof draft.subject !== "string" || typeof draft.body !== "string") {
       throw new Error("AI returned an invalid draft.");
     }
 
     return NextResponse.json({
-      subject: draft.subject.trim(),
-      body: draft.body.trim(),
+      id: savedDraft.id,
+      status: savedDraft.status,
+      subject: savedDraft.subject,
+      body: savedDraft.body,
       personalization_note:
         typeof draft.personalization_note === "string"
           ? draft.personalization_note.trim()
