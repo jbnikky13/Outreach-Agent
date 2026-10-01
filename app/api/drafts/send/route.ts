@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       .from("email_drafts")
       .update({ subject, body, status: "sent", sent_at: now, provider_message_id: result.id })
       .eq("id", draftId)
-      .eq("status", "sending")
+      .eq("status", "approved")
       .is("provider_message_id", null);
 
     if (updateError) {
