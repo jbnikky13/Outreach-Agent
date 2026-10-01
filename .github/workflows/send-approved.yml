@@ -7,15 +7,12 @@ on:
         description: "Supabase campaign UUID"
         required: true
         type: string
-  push:
-    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
   send-approved:
-    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message == 'Send Problem Radar campaign'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,5 +30,5 @@ jobs:
           MAIL_REFRESH_TOKEN: ${{ secrets.MAIL_REFRESH_TOKEN }}
           MAIL_FROM_ADDRESS: ${{ secrets.MAIL_FROM_ADDRESS }}
           MAIL_TENANT_ID: ${{ secrets.MAIL_TENANT_ID }}
-          CAMPAIGN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.campaign_id || 'ed1faf66-a4e5-4975-8cb6-cb0d24f158c9' }}
+          CAMPAIGN_ID: ${{ inputs.campaign_id }}
         run: npm run send:approved
