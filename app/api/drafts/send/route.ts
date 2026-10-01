@@ -100,7 +100,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, messageId: result.id, threadId: result.threadId || null, draftId });
   } catch (error: any) {
     console.error("send draft error", error);
-    const message = error instanceof Error ? error.message : String(error ?? "Unknown error");
+    const message = error instanceof Error ? error.message : (typeof error === "string" ? error : (() => { try { return JSON.stringify(error); } catch { return "Unknown error"; } })());
     const tokenMatch = message.match(/Gmail token refresh failed \\((\\d+)\\):\\s*([\\s\\S]*)$/);
     const sendMatch = message.match(/Gmail send failed \\((\\d+)\\):\\s*([\\s\\S]*)$/);
     const profileMatch = message.match(/authorized Gmail mailbox \\((\\d+)\\):\\s*([\\s\\S]*)$/);
@@ -110,6 +110,6 @@ export async function POST(request: Request) {
     let raw = match?.[2] || message;
     let provider: any = null;
     try { provider = JSON.parse(raw); } catch { provider = { raw }; }
-    return NextResponse.json({ error: "Email send failed.", diagnostic: { stage, providerStatus, reason: provider?.error?.errors?.[0]?.reason ?? provider?.error?.status ?? null, message: provider?.error?.message ?? provider?.error_description ?? provider?.raw ?? message } }, { status: 500 });
+    return NextResponse.json({ error: "Email send failed.", diagnostic: { stage, providerStatus, reason: provider?.error?.errors?.[0]?.reason ?? provider?.error?.status ?? null, message: typeof (provider?.error?.message ?? provider?.error_description ?? provider?.raw ?? message) === "string" ? (provider?.error?.message ?? provider?.error_description ?? provider?.raw ?? message) : JSON.stringify(provider?.error?.message ?? provider?.error_description ?? provider?.raw ?? message) } }, { status: 500 });
   }
 }
