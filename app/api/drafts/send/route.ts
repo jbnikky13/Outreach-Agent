@@ -101,9 +101,9 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("send draft error", error);
     const message = error instanceof Error ? error.message : String(error ?? "Unknown error");
-    const tokenMatch = message.match(/Gmail token refresh failed \\((\\d+)\\):\\s*(.*)$/s);
-    const sendMatch = message.match(/Gmail send failed \\((\\d+)\\):\\s*(.*)$/s);
-    const profileMatch = message.match(/authorized Gmail mailbox \\((\\d+)\\):\\s*(.*)$/s);
+    const tokenMatch = message.match(/Gmail token refresh failed \\((\\d+)\\):\\s*([\\s\\S]*)$/);
+    const sendMatch = message.match(/Gmail send failed \\((\\d+)\\):\\s*([\\s\\S]*)$/);
+    const profileMatch = message.match(/authorized Gmail mailbox \\((\\d+)\\):\\s*([\\s\\S]*)$/);
     const match = tokenMatch || sendMatch || profileMatch;
     const stage = tokenMatch ? "oauth_token" : sendMatch ? "gmail_send" : profileMatch ? "gmail_profile" : message.includes("Draft") || message.includes("prospect") ? "validation" : "server";
     let providerStatus = match ? Number(match[1]) : null;
