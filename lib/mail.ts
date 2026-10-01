@@ -87,7 +87,7 @@ async function outlookToken() {
   return data.access_token;
 }
 
-export async function sendOutlook(to: string, subject: string, text: string) {
+export async function sendOutlook(to: string, subject: string, text: string): Promise<{ id: string; threadId?: string }> {
   const token = await outlookToken();
   const r = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
     method: "POST",
@@ -101,7 +101,7 @@ export async function sendOutlook(to: string, subject: string, text: string) {
     }),
   });
   if (!r.ok) throw new Error("Outlook send failed: " + await r.text());
-  return { id: "outlook-" + Date.now() };
+  return { id: "outlook-" + Date.now(), threadId: undefined };
 }
 
 export async function sendMail(to: string, subject: string, text: string) {
