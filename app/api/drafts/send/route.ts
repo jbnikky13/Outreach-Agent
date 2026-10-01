@@ -98,7 +98,18 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ success: true, messageId: result.id, threadId: result.threadId || null, draftId });
-  } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Email send failed." }, { status: 500 });
+  } catch (error: any) {
+    console.error("send draft error", error);
+    const message = error instanceof Error ? error.message : String(error ?? "Unknown error");
+    const tokenMatch = message.match(/Gmail token refresh failed \\((\\d+)\\):\\s*(.*)$/s);
+    const sendMatch = message.match(/Gmail send failed \\((\\d+)\\):\\s*(.*)$/s);
+    const profileMatch = message.match(/authorized Gmail mailbox \\((\\d+)\\):\\s*(.*)$/s);
+    const match = tokenMatch || sendMatch || profileMatch;
+    const stage = tokenMatch ? "oauth_token" : sendMatch ? "gmail_send" : profileMatch ? "gmail_profile" : message.includes("Draft") || message.includes("prospect") ? "validation" : "server";
+    let providerStatus = match ? Number(match[1]) : null;
+    let raw = match?.[2] || message;
+    let provider: any = null;
+    try { provider = JSON.parse(raw); } catch { provider = { raw }; }
+    return NextResponse.json({ error: "Email send failed.", diagnostic: { stage, providerStatus, reason: provider?.error?.errors?.[0]?.reason ?? provider?.error?.status ?? null, message: provider?.error?.message ?? provider?.error_description ?? provider?.raw ?? message } }, { status: 500 });
   }
 }
