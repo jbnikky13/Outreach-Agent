@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Outreach-Agent</title><desc id="desc">Envelope with a paper plane, in blue and violet, on a navy rounded square.</desc>
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#06B6D4"/><stop offset=".55" stop-color="#3B82F6"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient></defs>
+  <rect width="512" height="512" rx="112" fill="#0B1F44"/>
+  <path d="M112 194 Q112 174 134 174 H378 Q400 174 400 196 V326 Q400 348 378 348 H134 Q112 348 112 326Z" fill="url(#g)"/>
+  <path d="M122 198 L256 294 L390 198" fill="none" stroke="#FFFFFF" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M244 184 L409 94 L363 254 L321 218 L282 246 L292 203Z" fill="#06B6D4" stroke="#0B1F44" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M292 203 L409 94 L321 218" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linejoin="round"/>
+</svg>
