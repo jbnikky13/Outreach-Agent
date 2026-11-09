@@ -2,24 +2,13 @@ name: Outreach Agent - Generate Follow-ups
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 9 * * 1-5"
 
 permissions:
   contents: read
 
 jobs:
-  generate-followups:
+  disabled:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm install --no-audit --no-fund
-      - name: Generate follow-up drafts
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: npm run followups:generate
+      - name: Explain disabled legacy workflow
+        run: echo "Follow-up generation is disabled until it creates workspace-scoped drafts bound to each member's mailbox."
