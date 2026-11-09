@@ -1,6 +1,6 @@
 # Outreach-Agent 2.0 — Architecture and Implementation Plan
 
-**Status:** Architecture baseline; implementation not yet started  
+**Status:** Implementation in progress on the feature branch; staging-only migrations and per-user mailbox foundation/OAuth routes are implemented, but end-to-end provider verification and production readiness remain outstanding  
 **Base repository:** `jbnikky13/Outreach-Agent`  
 **Base branch:** `main`  
 **Working branch:** `feat/outreach-agent-2-architecture`
@@ -8,7 +8,7 @@
 ## 1. Product decisions
 
 - **Access:** invitation-only. An administrator invites users; invitations are single-use, expiring, and scoped to a workspace and role.
-- **Email:** support both user-connected mailboxes and administrator-managed mailboxes. A workspace must explicitly select an authorised sending mailbox for each campaign.
+- **Email:** each Telegram-linked member connects and selects their own Gmail or Microsoft account. Administrator-managed shared mailboxes remain a separate optional capability; drafts are bound to the creator's selected mailbox and cannot silently fall back.
 - **Discovery:** support potential clients, strategic partners, supplier relationships, subcontracting, public/private procurement, tenders, grants and institutional opportunities. Discovery categories must remain distinguishable in results.
 - **Interface:** Telegram-first, with backend services designed to support a future web dashboard.
 - **Safety:** draft-first. No message is sent without an explicit approval event by an authorised workspace member.
@@ -139,7 +139,7 @@ Support two connection modes:
 2. **Administrator-managed:** a platform/workspace administrator connects a mailbox and explicitly assigns it to a workspace with an auditable grant.
 
 Rules:
-- Every campaign/draft resolves to one authorised mailbox.
+- Every draft resolves to one authorised mailbox owned by its creator unless a separately audited shared-mailbox grant is implemented.
 - Sending service loads credentials for that mailbox only.
 - Verify provider mailbox identity before sending.
 - Encrypt refresh tokens using a managed secret/encryption key; never log tokens.
