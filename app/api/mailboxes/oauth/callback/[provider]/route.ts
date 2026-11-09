@@ -36,7 +36,7 @@ export async function GET(request: Request, context: { params: Promise<{ provide
       .update({ consumed_at: now })
       .eq("state_hash", hashOAuthState(state)).eq("provider", provider)
       .is("consumed_at", null).gt("expires_at", now)
-      .select("workspace_id,user_id,redirect_uri").maybeSingle();
+      .select("workspace_id,user_id,redirect_uri,code_verifier").maybeSingle();
     if (stateError || !stateRow || stateRow.redirect_uri !== mailboxCallbackUrl(provider)) {
       return resultRedirect("error", "This authorization link is invalid, expired, or already used. Start again from Mailboxes.");
     }
@@ -51,7 +51,8 @@ export async function GET(request: Request, context: { params: Promise<{ provide
         client_secret: config.clientSecret,
         grant_type: "authorization_code",
         code,
-        redirect_uri: stateRow.redirect_uri
+        redirect_uri: stateRow.redirect_uri,
+        code_verifier: stateRow.code_verifier
       })
     });
     const tokens = await tokenResponse.json();
