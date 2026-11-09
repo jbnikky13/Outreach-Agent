@@ -328,7 +328,7 @@ export async function POST(request: Request) {
       await reply(chatId, error || !task
         ? "Could not prepare the contact form task."
         : "Contact-form task prepared for " + company.company_name + ".\nURL: " + formUrl.toString() +
-          "\\nTask ID: " + task.id + "\\n\\nProposed details:\\n" + (proposedPreview || "No company profile details configured.") +
+          "\nTask ID: " + task.id + "\n\nProposed details:\n" + (proposedPreview || "No company profile details configured.") +
           "\\n\\nStatus: needs review. Verify each field and submit manually.");
       return NextResponse.json({ ok: true });
     }
