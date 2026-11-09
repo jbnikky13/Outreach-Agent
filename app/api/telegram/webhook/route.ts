@@ -34,7 +34,7 @@ async function reply(chatId: number, text: string) {
   if (!response.ok) throw new Error("Telegram sendMessage failed: " + response.status);
 }
 
-async function researchCompanies(supabase: ReturnType<typeof createClient>, workspaceId: string, userId: string, query: string) {
+async function researchCompanies(supabase: any, workspaceId: string, userId: string, query: string): Promise<{ companies: any[]; sources: string[] }> {
   const apiKey = required("GEMINI_API_KEY");
   const prompt = [
     "Research companies relevant to this business-development search using current public web sources.",
@@ -61,7 +61,7 @@ async function researchCompanies(supabase: ReturnType<typeof createClient>, work
   const grounding = payload?.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
   const sources = grounding.map((chunk: any) => chunk.web?.uri).filter((url: unknown): url is string => typeof url === "string" && url.startsWith("https://"));
   const rows = Array.isArray(parsed.companies) ? parsed.companies.slice(0, 5) : [];
-  const saved = [];
+  const saved: any[] = [];
   for (const company of rows) {
     if (typeof company.company_name !== "string" || !company.company_name.trim()) continue;
     const website = typeof company.website === "string" && company.website.startsWith("https://") ? company.website : null;
