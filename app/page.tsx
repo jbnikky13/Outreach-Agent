@@ -48,6 +48,12 @@ export default function Home(){
   });
 
   const data = await res.json();
+  if (data.pendingReconciliation) {
+    setActionError(data.warning || "Send outcome requires manual reconciliation. Do not retry.");
+    setDraft((current) => current ? { ...current, status: "sending_unknown" } : current);
+    setSending(false);
+    return;
+  }
   if (!res.ok) {
     setActionError(data.diagnostic ? `${data.error}: ${data.diagnostic.stage}${data.diagnostic.providerStatus ? ` (${data.diagnostic.providerStatus})` : ""} — ${data.diagnostic.reason || data.diagnostic.message || "Unknown provider error"}` : (data.error || "Send failed"));
     setSending(false);
