@@ -1,43 +1,36 @@
 # Outreach Agent
 
-A GitHub-powered personal outreach agent using Supabase for state and your own mailbox for email delivery.
+A workspace-scoped outreach assistant built with Next.js, Supabase, Telegram and per-member Gmail/Outlook connections.
 
-## Workflow
+## Current workflow
 
-1. Campaigns and prospects are stored in Supabase.
-2. GitHub Actions generates outreach drafts.
-3. You review and approve drafts.
-4. The approved-send workflow sends only approved drafts through Gmail or Outlook OAuth.
-5. Sent message/thread IDs are recorded in Supabase.
-6. The reply-sync workflow checks the mailbox every 30 minutes.
-7. Incoming replies can be matched to prospects/threads and used to stop follow-ups and prepare response drafts.
+1. A workspace owner invites members. There is no public signup.
+2. Members link their Telegram account using a short-lived, single-use code.
+3. Each member connects and selects their own Gmail or Outlook mailbox.
+4. Members manage campaigns and prospects in the web app.
+5. The app can generate a draft from workspace campaign and prospect information.
+6. A workspace member explicitly approves the stored draft.
+7. Sending is guarded by the approval record, the draft creator's selected mailbox, provider identity verification and a one-shot send claim.
 
-## GitHub Actions
+Company research and contact-form preparation are available through Telegram. Research results are stored as leads requiring human verification. Contact-form tasks are prepared for manual review; the bot does not submit forms.
 
-- `.github/workflows/generate-outreach.yml` — scheduled/manual draft generation.
-- `.github/workflows/send-approved.yml` — sends only explicitly approved drafts.
-- `.github/workflows/check-replies.yml` — checks Gmail/Outlook inboxes every 30 minutes and matches replies.\n- `.github/workflows/generate-followups.yml` — creates human-review follow-up drafts on weekdays.
+## Safety and current limitations
 
-## Required GitHub Actions secrets
+- Email sending remains disabled unless `MAIL_SEND_ENABLED=true` is explicitly configured.
+- Live Gmail and Microsoft OAuth connection, token refresh, identity verification and controlled send tests remain outstanding.
+- Every draft must be bound to the creator's own selected mailbox. There is no global sender fallback.
+- The legacy global-mailbox send, reply-sync and follow-up scripts are disabled.
+- The old scheduled GitHub Actions workflows are now inert. Reply synchronization and follow-up generation must be rebuilt for per-user mailboxes before reactivation.
+- Opportunity discovery beyond the current company-research workflow, document ingestion, and multi-workspace selection in the UI remain incomplete.
 
-`SUPABASE_URL`
-`SUPABASE_SERVICE_ROLE_KEY`
-`MAIL_PROVIDER` — `gmail` or `outlook`
-`MAIL_CLIENT_ID`
-`MAIL_CLIENT_SECRET`
-`MAIL_REFRESH_TOKEN`
-`MAIL_TENANT_ID` — required for Outlook
+## Development checks
 
-Never commit secrets.
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
 
-## Safety
+GitHub Actions runs these checks on pull requests. Do not put OAuth secrets, Supabase service-role keys, bot tokens or encryption keys in source control.
 
-Human approval is required before sending. The send workflow is separate from draft generation. The runner queries only drafts marked `approved` and uses provider message IDs to reduce duplicate sends.
+## Deployment status
 
-## Database
-
-Supabase stores campaigns, prospects, drafts, threads, activities and mailboxes with row-level security.
-
-## Status
-
-The GitHub automation, provider adapters, Supabase state, deployed Gmail delivery, reply matching and human-review follow-up generation are implemented. Provider OAuth secrets must remain configured in GitHub/Vercel; never commit them.
+The active implementation is being tested on `feat/outreach-agent-2-architecture` with the separate staging Supabase project. Production migrations, environment variables and deployment are not part of this branch's current test procedure.
