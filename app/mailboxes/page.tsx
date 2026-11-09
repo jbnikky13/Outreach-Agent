@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import type { CSSProperties } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase";
 
 type Mailbox = {
@@ -11,7 +12,6 @@ type Mailbox = {
 
 export default function MailboxesPage() {
   const router = useRouter();
-  const search = useSearchParams();
   const [workspaceId, setWorkspaceId] = useState("");
   const [mailboxes, setMailboxes] = useState<Mailbox[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +43,7 @@ export default function MailboxesPage() {
         if (!active) return;
         setWorkspaceId(memberships[0].workspace_id);
         await load(memberships[0].workspace_id, session.access_token);
+        const search = new URLSearchParams(window.location.search);
         if (search.get("connected") === "1") setMessage("Mailbox connected and selected. Email sending remains disabled until final safety checks are complete.");
         const callbackError = search.get("error");
         if (callbackError) setError(callbackError);
@@ -53,7 +54,7 @@ export default function MailboxesPage() {
       }
     })();
     return () => { active = false; };
-  }, [load, router, search]);
+  }, [load, router]);
 
   async function connect(provider: "gmail" | "outlook") {
     setBusy(provider); setError(""); setMessage("");
@@ -123,7 +124,7 @@ export default function MailboxesPage() {
   </main>;
 }
 
-const buttonStyle: React.CSSProperties = {
+const buttonStyle: CSSProperties = {
   border: "1px solid var(--border, #ccc)", borderRadius: 10, padding: "11px 16px",
   background: "var(--foreground, #111)", color: "var(--background, #fff)", cursor: "pointer"
 };
