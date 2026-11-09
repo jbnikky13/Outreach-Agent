@@ -142,6 +142,7 @@ export async function POST(request: Request) {
       await reply(chatId, [
         "Outreach Agent commands:",
         "/workspace — show your linked workspace",
+        "/profile Name | website | industry | headquarters | contact email | description — save your company profile",
         "/research <industry, location, or target> — find companies using public web sources",
         "/companies — list recent company research",
         "/contact <company-research-id> <https://contact-page> | details — prepare a contact-form task",
@@ -154,6 +155,44 @@ export async function POST(request: Request) {
     if (/^\/workspace(?:@\w+)?$/i.test(text)) {
       const { data: workspace } = await supabase.from("workspaces").select("name").eq("id", account.workspace_id).maybeSingle();
       await reply(chatId, "Workspace: " + (workspace?.name ?? "Linked workspace") + "\nYour role: " + membership.role);
+      return NextResponse.json({ ok: true });
+    }
+
+    const profileMatch = text.match(/^\/profile(?:@\\w+)?\\s+([\\s\\S]{3,1800})$/i);
+    if (profileMatch) {
+      if (!["owner", "admin", "member"].includes(membership.role)) {
+        await reply(chatId, "Your workspace role can review company details but cannot edit the profile.");
+        return NextResponse.json({ ok: true });
+      }
+      const fields = profileMatch[1].split("|").map(value => value.trim());
+      if (fields.length < 5 || !fields[0]) {
+        await reply(chatId, "Use: /profile Company name | https://website | industry | headquarters | contact email | short description");
+        return NextResponse.json({ ok: true });
+      }
+      const [companyName, websiteRaw, industry, headquarters, emailRaw, description] = fields;
+      const website = websiteRaw ? new URL(websiteRaw).toString() : null;
+      if (website && new URL(website).protocol !== "https:") {
+        await reply(chatId, "Company website must use HTTPS.");
+        return NextResponse.json({ ok: true });
+      }
+      const contactEmail = emailRaw || null;
+      if (contactEmail && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(contactEmail)) {
+        await reply(chatId, "That contact email does not look valid.");
+        return NextResponse.json({ ok: true });
+      }
+      const { error } = await supabase.from("company_profiles").upsert({
+        workspace_id: account.workspace_id,
+        company_name: companyName.slice(0, 200),
+        website,
+        industry: industry || null,
+        headquarters: headquarters || null,
+        contact_email: contactEmail,
+        description: description || null,
+        updated_at: new Date().toISOString()
+      }, { onConflict: "workspace_id" });
+      await reply(chatId, error
+        ? "Could not save the company profile. Please try again or ask an administrator."
+        : "Company profile saved. Contact-form tasks can now use these details. Send /profile again to update them.");
       return NextResponse.json({ ok: true });
     }
 
