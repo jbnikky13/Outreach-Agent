@@ -50,7 +50,7 @@ test("email validation accepts ordinary addresses", () => {
 test("email validation rejects whitespace and malformed addresses", () => {
   assert.equal(isValidEmailAddress("person @example.com"), false);
   assert.equal(isValidEmailAddress("person@example"), false);
-  assert.equal(isValidEmailAddress("person@example..com"), true);
+  assert.equal(isValidEmailAddress("person@example..com"), false);
   assert.equal(isValidEmailAddress(""), false);
   assert.equal(isValidEmailAddress(null), false);
 });
