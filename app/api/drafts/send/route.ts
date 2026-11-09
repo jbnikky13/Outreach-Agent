@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
-import { sendMail } from "../../../../lib/mail";
 import { requireWorkspaceAccess } from "../../../../lib/server/workspace-auth";
 
 export const runtime = "nodejs";
