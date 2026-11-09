@@ -67,3 +67,6 @@ The staging service-role variable and staging Gemini variable are intentionally 
 Configure Supabase Auth Site URL and allowed redirect URL for the exact preview origin plus `/accept-invite`. Configure custom SMTP before invitation delivery tests. The staging project currently has no initial user or workspace; create the first staging auth user, then perform a controlled owner/workspace bootstrap before inviting other test users.
 
 Never enable outbound email on staging. Do not point staging environment variables at the production Supabase project.
+
+
+The current stable Vercel branch alias is `outreach-agent-git-feat-outreach-6fa427-nichole-godams-projects.vercel.app`; branch-scoped `APP_BASE_URL` is set to this alias so invitation redirects remain stable across preview redeployments.
