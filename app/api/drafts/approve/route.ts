@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createHash } from "node:crypto";
+import { createDraftApprovalHash } from "../../../../lib/server/draft-approval";
 import { requireWorkspaceAccess } from "../../../../lib/server/workspace-auth";
 
 export const runtime = "nodejs";
@@ -36,12 +36,12 @@ export async function POST(request: Request) {
 
     // Approval binds the exact message, recipient, and sender mailbox.
     // Any later recipient/content/mailbox change makes the send-time hash fail.
-    const hash = createHash("sha256").update(JSON.stringify({
+    const hash = createDraftApprovalHash({
       subject: draft.subject,
       body: draft.body,
-      recipient: prospect.email.trim().toLowerCase(),
+      recipient: prospect.email,
       mailboxId: draft.mailbox_id
-    })).digest("hex");
+    });
     const { data: approved, error } = await supabase.from("email_drafts").update({
       status: "approved", approved_at: new Date().toISOString(),
       approved_by: user.id, approved_content_hash: hash
