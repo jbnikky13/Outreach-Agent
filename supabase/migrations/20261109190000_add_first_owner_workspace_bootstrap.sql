@@ -3,7 +3,7 @@
 -- this SECURITY DEFINER function; the function refuses to run after the first
 -- workspace exists.
 
-create or replace function private.bootstrap_first_workspace(
+create or replace function public.bootstrap_first_workspace(
   p_user_id uuid,
   p_workspace_name text default 'Outreach Agent Workspace'
 )
@@ -49,6 +49,6 @@ begin
 end;
 $function$;
 
-revoke all on function private.bootstrap_first_workspace(uuid, text) from public, anon, authenticated;
+revoke all on function public.bootstrap_first_workspace(uuid, text) from public, anon, authenticated;
 grant usage on schema private to service_role;
-grant execute on function private.bootstrap_first_workspace(uuid, text) to service_role;
+grant execute on function public.bootstrap_first_workspace(uuid, text) to service_role;
