@@ -29,6 +29,10 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const allowedOwnerEmail = required("WORKSPACE_BOOTSTRAP_EMAIL").toLowerCase();
+    if (email !== allowedOwnerEmail) {
+      return NextResponse.json({ error: "This email is not the configured first-owner address." }, { status: 403 });
+    }
     const workspaceName = typeof body.workspaceName === "string"
       ? body.workspaceName.trim().slice(0, 120)
       : "Outreach Agent Workspace";
