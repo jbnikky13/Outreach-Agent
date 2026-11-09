@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createHash } from "node:crypto";
+import { createDraftApprovalHash } from "../../../../lib/server/draft-approval";
 import { requireWorkspaceAccess } from "../../../../lib/server/workspace-auth";
 import { getFreshMailboxAccessToken, sendThroughMailbox, verifyMailboxIdentity } from "../../../../lib/server/mailbox-send";
 import { safeProvider } from "../../../../lib/server/mailbox-oauth";
@@ -36,12 +36,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Only the draft creator can send from the mailbox bound to this draft." }, { status: 403 });
     }
 
-    const actualHash = createHash("sha256").update(JSON.stringify({
+    const actualHash = createDraftApprovalHash({
       subject: draft.subject,
       body: draft.body,
-      recipient: prospect.email.trim().toLowerCase(),
+      recipient: prospect.email,
       mailboxId: draft.mailbox_id
-    })).digest("hex");
+    });
     if (actualHash !== draft.approved_content_hash) {
       return NextResponse.json({ error: "Draft content changed after approval. Review and approve it again." }, { status: 409 });
     }
