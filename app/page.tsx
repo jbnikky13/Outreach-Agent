@@ -33,19 +33,18 @@ export default function Home(){
   const { data: { session } } = await s.auth.getSession();
   if (!session) {
     router.replace("/login");
+    setSending(false);
     return;
   }
 
   const res = await fetch("/api/drafts/send", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      prospectId: id,
-      draftId: draft.id,
-      subject: draft.subject,
-      body: draft.body,
-      campaignId: selectedCampaignId
-    })
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + session.access_token,
+      "x-workspace-id": workspaceId
+    },
+    body: JSON.stringify({ prospectId: id, draftId: draft.id })
   });
 
   const data = await res.json();
