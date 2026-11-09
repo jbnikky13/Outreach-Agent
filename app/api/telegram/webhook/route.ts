@@ -37,6 +37,7 @@ async function reply(chatId: number, text: string) {
 export async function POST(request: Request) {
   try {
     const expectedSecret = required("TELEGRAM_WEBHOOK_SECRET");
+    if (expectedSecret.length < 32) throw new Error("TELEGRAM_WEBHOOK_SECRET must be at least 32 characters");
     const suppliedSecret = request.headers.get("x-telegram-bot-api-secret-token") ?? "";
     if (!safeEqual(suppliedSecret, expectedSecret)) {
       return NextResponse.json({ error: "Unauthorized webhook." }, { status: 401 });
