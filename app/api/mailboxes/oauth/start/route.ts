@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireWorkspaceAccess } from "../../../../../lib/server/workspace-auth";
-import { createOAuthState, hashOAuthState, mailboxCallbackUrl, oauthConfig, safeProvider } from "../../../../../lib/server/mailbox-oauth";
+import { createOAuthState, createPkcePair, hashOAuthState, mailboxCallbackUrl, oauthConfig, safeProvider } from "../../../../../lib/server/mailbox-oauth";
 
 export const runtime = "nodejs";
 
@@ -18,11 +18,12 @@ export async function POST(request: Request) {
         : "Outlook connection is not configured yet. An administrator must add the Microsoft OAuth client ID and secret." }, { status: 503 });
     }
     const state = createOAuthState();
+    const pkce = createPkcePair();
     const redirectUri = mailboxCallbackUrl(provider);
     const { supabase, user, workspaceId } = access.context;
     const { error } = await supabase.from("mailbox_oauth_states").insert({
       state_hash: hashOAuthState(state), workspace_id: workspaceId, user_id: user.id,
-      provider, redirect_uri: redirectUri, expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
+      provider, redirect_uri: redirectUri, code_verifier: pkce.verifier, expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
     });
     if (error) {
       console.error("mailbox oauth state insert failed", error);
@@ -34,6 +35,8 @@ export async function POST(request: Request) {
     url.searchParams.set("response_type", "code");
     url.searchParams.set("scope", config.scopes.join(" "));
     url.searchParams.set("state", state);
+    url.searchParams.set("code_challenge", pkce.challenge);
+    url.searchParams.set("code_challenge_method", "S256");
     if (provider === "gmail") {
       url.searchParams.set("access_type", "offline");
       url.searchParams.set("prompt", "consent");
