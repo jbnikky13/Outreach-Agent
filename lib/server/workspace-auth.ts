@@ -41,3 +41,17 @@ export async function requireWorkspaceAccess(
   }
   return { ok: true, context: { supabase, user: authData.user, workspaceId, role: membership.role as WorkspaceRole } };
 }
+
+/** Authenticate a bearer token without requiring a workspace header (invite acceptance). */
+export async function authenticateBearerUser(
+  request: Request
+): Promise<{ ok: true; supabase: SupabaseClient; user: User } | { ok: false; status: 401; error: string }> {
+  const token = (request.headers.get("authorization") ?? "").match(/^Bearer\\s+(.+)$/i)?.[1];
+  if (!token) return { ok: false, status: 401, error: "Sign in is required." };
+  const supabase = createClient(required("SUPABASE_URL"), required("SUPABASE_SERVICE_ROLE_KEY"), {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data.user) return { ok: false, status: 401, error: "Your session is invalid or expired." };
+  return { ok: true, supabase, user: data.user };
+}
