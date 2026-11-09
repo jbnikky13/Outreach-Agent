@@ -1,80 +1,84 @@
-# Workspace foundation migration notes
+# Outreach Agent 2.0 — Staging migration notes
 
-## Scope
+## Environment boundary
 
-This is the first repository-tracked, forward-only workspace migration for Outreach-Agent 2.0. It adds workspaces, workspace memberships, invitation records, company profiles and audit logs, then adds a non-null `workspace_id` to the six existing outreach tables.
+- Staging project: **Outreach Agent Staging**
+- Supabase project ref: `xjyynmakdibnxtzunozt`
+- Region: `eu-west-1`
+- Production project ref: `ipitkxxlbbgmraryjlpc` — **do not use for this implementation or its tests**.
 
-The migration preserves all existing records and their existing `owner_id` values. Existing users are assigned a personal legacy workspace and owner membership. Missing owner IDs on email threads and activities are recovered only from their linked prospect/campaign. If any existing row cannot be assigned safely, a guard raises an exception before the existing owner policies are replaced.
+All checks in this document refer to staging unless explicitly stated otherwise. Do not copy Production service-role keys, OAuth credentials, mailbox tokens or other secrets into Preview.
 
-## Important repository/database drift
+## Migration history reconciliation
 
-The connected Supabase project reports six applied migrations dated 2026-09-27 and 2026-09-28, but their SQL files are not present in this repository's inspected branch. This file must therefore be reconciled against the hosted migration history and a staging schema before it is applied. Do not assume this repository can yet reproduce the whole production schema from zero.
+The staging migration ledger contains 16 applied migrations. The repository migration filenames have been aligned to the exact version and name recorded in staging:
 
-## Apply/test sequence
+1. `20261109151147_baseline_outreach_core_schema.sql`
+2. `20261109151213_add_workspace_foundation.sql`
+3. `20261109151256_bind_draft_approval.sql`
+4. `20261109151306_lock_draft_approval_fields.sql`
+5. `20261109151314_add_invitation_and_telegram_linking.sql`
+6. `20261109155604_optimize_workspace_policies_and_indexes.sql`
+7. `20261109155653_explicitly_deny_browser_access_to_service_tables.sql`
+8. `20261109160208_revoke_browser_grants_on_workspace_invitations.sql`
+9. `20261109160715_add_company_research_and_contact_form_tasks.sql`
+10. `20261109161214_index_company_research_task_foreign_keys.sql`
+11. `20261109173129_add_per_user_mailbox_foundation.sql`
+12. `20261109173216_add_service_mailbox_records.sql`
+13. `20261109173232_remove_unused_private_mailbox_tables.sql`
+14. `20261109173307_bind_drafts_to_member_mailboxes.sql`
+15. `20261109173657_add_mailbox_oauth_pkce.sql`
+16. `20261109181835_add_first_owner_workspace_bootstrap.sql`
 
-1. Create a staging Supabase project from a database backup/schema clone. Do not test this first on production.
-2. Reconcile this SQL with the six hosted migrations and verify the six existing table definitions and policy names.
-3. Apply the migration to staging.
-4. Verify row counts are unchanged for campaigns (7), prospects (36), email_drafts (67), email_threads (30), and activities (52); mailboxes currently has 0 rows.
-5. Verify each existing row has a workspace ID; existing owner IDs remain unchanged except the 3 ownerless email threads and 17 ownerless activities, which should inherit the linked prospect/campaign owner.
-6. Test with two authenticated users in separate workspaces: cross-workspace reads/writes must return no rows; workspace members can read; reviewers cannot mutate; members cannot manage mailboxes; owners/admins can manage mailboxes.
-7. Verify invitation records are inaccessible to direct client roles and are only manipulated by authenticated server handlers after explicit workspace authorization.
-8. Run Supabase security/performance advisors and the application's typecheck/test/build suite.
-9. Only after review and explicit production approval should this be applied to production.
+The rename operation changed repository paths only. It did not apply, reapply, roll back or modify any staging migration. The SQL files and the resulting staging schema were inspected for the expected tables, columns, policies and bootstrap function. Supabase's migration ledger stores version/name metadata, not the original SQL text, so it cannot establish byte-for-byte identity between a historical applied SQL file and the repository copy.
 
-## Known follow-up work
+**Do not reapply these 16 migrations.** Before any future schema change, compare `supabase migration list` with the staging ledger and add a new forward-only migration. Do not rewrite already-applied migration contents or change their version identifiers again.
 
-- Add server-side auth/session validation and workspace membership checks to every privileged API route before any service-role query.
-- Implement invitation creation/acceptance using cryptographically random one-time tokens; store only a token hash and enforce expiry/revocation/email match.
-- Add Telegram account linking via one-time authenticated code; never authorize by Telegram username/chat ID alone.
-- Add mailbox credential isolation and explicit mailbox selection. The current mail adapter still uses process-wide environment credentials.
-- Add company document storage/extraction and evidence provenance in a separate migration.
-- Restrict authenticated browser updates on email drafts to subject/body only; a database trigger resets status and clears approval metadata whenever either field changes. Apply `20261109200000_lock_draft_approval_fields.sql` after the approval-metadata migration.\n- Email send attempts now fail closed on ambiguous provider/network outcomes: the attempt claim is retained and automatic stale-claim retries are disabled. A mailbox reconciliation procedure is still needed before safely releasing an uncertain attempt.\n- Add tests for RLS, route authorization, role restrictions, token replay, approval invalidation on edits, ambiguous send recovery, and cross-tenant isolation.
+## Implemented schema areas
 
-## Non-goals
+- Workspace tenancy, membership roles, invitations, company profiles and audit logs.
+- Workspace-scoped campaigns, prospects, drafts, threads, activities and mailbox metadata.
+- Approval metadata and a database trigger that invalidates approval when draft subject/body content changes.
+- Service-only invitation and Telegram linking records with server-side redemption functions.
+- Company research and manual contact-form task records, with workspace RLS.
+- Per-member mailbox metadata, encrypted credential records, OAuth state and PKCE verifier.
+- First-owner bootstrap function restricted to `service_role`.
 
-This migration does not create Telegram commands, invite links, document upload flows, OAuth connections, or opportunity discovery. It does not alter live production data.
+Mailbox credentials, OAuth state and mailbox preferences are stored in service-only tables with browser-deny RLS and revoked browser grants. Mailbox metadata writes are server-side. The application encrypts provider tokens with AES-256-GCM before persistence.
 
+## Current staging state
 
-## Staging project and Telegram research workflow
+At the last read-only audit:
 
-Staging project: `xjyynmakdibnxtzunozt` in `eu-west-1`. The staging database has a repository-tracked baseline and the workspace, approval, invitation/Telegram, policy/index, and company research/contact-task migrations. No production rows were copied.
+- `auth.users`: 0
+- `public.workspaces`: 0
+- `public.workspace_members`: 0
+- `public.workspace_invitations`: 0
+- `public.telegram_accounts`: 0
+- `public.mailboxes`: 0
+- `public.email_drafts`: 0
 
-### Telegram commands
+The first-owner bootstrap has not been run. No owner invitation, Telegram link, mailbox connection or email send has been performed.
 
-After a user links their Telegram account from Settings:
+## Current application limitations
 
-- `/help` — list commands.
-- `/workspace` — show the linked workspace and role.
-- `/research <query>` — use Gemini web grounding to research up to five companies; save findings and public source URLs with status `needs_review`.
-- `/companies` — list recent research records.
-- `/contact <company-research-uuid> <https-contact-page-url>` — create a contact-form task containing the workspace company profile values.
-- `/tasks` — list tasks awaiting review.
+- The dashboard and mailbox settings currently require exactly one workspace membership per user. Multi-workspace selection is not implemented yet, although the target architecture allows multiple memberships.
+- Google and Microsoft OAuth client credentials still need to be configured in the Preview environment and tested with controlled accounts.
+- Telegram webhook registration and end-to-end command testing remain outstanding.
+- Reply synchronization and follow-up generation using per-user mailbox credentials are not implemented. The legacy global-mailbox scripts and their scheduled workflows have been disabled on this branch.
+- Email sending remains disabled unless `MAIL_SEND_ENABLED=true`; do not enable it until the controlled mailbox lifecycle is tested.
+- Company research is a lead-generation aid. Results remain `needs_review`; source links are currently stored as search-level grounding sources, not independently verified evidence for every company claim.
+- Document ingestion, opportunity/tender discovery, and automated form submission are not implemented.
 
-Research results are leads, not verified facts. A human must validate official domains, contact details, and sources. The bot does not bypass CAPTCHA, authentication, access controls, or site restrictions. It does not submit contact forms or send email from these commands. Contact tasks are preparation records for human review and manual submission.
+## Staging verification checklist
 
-### Required Vercel Preview variables
+1. Confirm all 16 repository migration versions/names match the staging ledger.
+2. Run read-only schema, RLS, grants and function checks against staging.
+3. Run Supabase security and performance advisors; review each finding rather than blindly dropping indexes.
+4. Run `npm run typecheck`, `npm test` and `npm run build`.
+5. Deploy the verified feature branch to the Preview environment only when deployment capacity is available.
+6. Test first-owner bootstrap, invitation acceptance, Telegram linking, member isolation and mailbox OAuth using controlled test accounts.
+7. Verify approval invalidation for changes to message content, recipient and sender mailbox.
+8. Only after explicit authorization, test one controlled send and verify provider response and local reconciliation.
 
-For branch `feat/outreach-agent-2-architecture`, Preview variables are scoped to the branch. The public Supabase URL and publishable key point to staging. `MAIL_PROVIDER=disabled` prevents staging email sending. `APP_BASE_URL` points to the branch preview deployment.
-
-The staging service-role variable and staging Gemini variable are intentionally set to non-secret placeholders until real staging-only values are entered. Do not replace them with production secrets. Set these securely in Vercel:
-- `SUPABASE_SERVICE_ROLE_KEY`: staging project's service-role secret only.
-- `GEMINI_API_KEY`: staging-specific Gemini API key.
-- `TELEGRAM_BOT_TOKEN`: dedicated staging bot token.
-- `TELEGRAM_WEBHOOK_SECRET`: random high-entropy secret (at least 32 characters).
-- `APP_BASE_URL`: current stable preview origin.
-
-Configure Supabase Auth Site URL and allowed redirect URL for the exact preview origin plus `/accept-invite`. Configure custom SMTP before invitation delivery tests. The staging project currently has no initial user or workspace; create the first staging auth user, then perform a controlled owner/workspace bootstrap before inviting other test users.
-
-Never enable outbound email on staging. Do not point staging environment variables at the production Supabase project.
-
-
-The current stable Vercel branch alias is `outreach-agent-git-feat-outreach-6fa427-nichole-godams-projects.vercel.app`; branch-scoped `APP_BASE_URL` is set to this alias so invitation redirects remain stable across preview redeployments.
-
-
-### Telegram company profile and contact-form details
-
-- `/profile Company name | https://website | industry | headquarters | contact email | description` saves the workspace's company profile. Members with owner/admin/member roles may update it.
-- `/contact <company-research-uuid> <https-contact-page-url> | extra context` creates a contact task using the saved company profile plus the optional details after the pipe.
-- The bot returns the proposed values in Telegram for review. The current implementation prepares the values and task record; it does not inspect arbitrary website HTML to map fields or automatically populate/submit remote forms.
-- Manual form completion remains the safe supported workflow until a browser-based form mapper is built and tested against site terms, CAPTCHA, anti-bot controls, and field validation.
+Production remains out of scope. No Production migration, environment-variable change, deployment or outbound email is authorized by this staging plan.
