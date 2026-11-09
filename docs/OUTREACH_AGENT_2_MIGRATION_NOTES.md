@@ -11,7 +11,7 @@ All checks in this document refer to staging unless explicitly stated otherwise.
 
 ## Migration history reconciliation
 
-The staging migration ledger contains 17 applied migrations. The repository migration filenames have been aligned to the exact version and name recorded in staging:
+The staging migration ledger contains 18 applied migrations. The repository migration filenames have been aligned to the exact version and name recorded in staging:
 
 1. `20261109151147_baseline_outreach_core_schema.sql`
 2. `20261109151213_add_workspace_foundation.sql`
@@ -30,10 +30,11 @@ The staging migration ledger contains 17 applied migrations. The repository migr
 15. `20261109173657_add_mailbox_oauth_pkce.sql`
 16. `20261109181835_add_first_owner_workspace_bootstrap.sql`
 17. `20261109183158_index_mailbox_and_draft_foreign_keys.sql`
+18. `20261109183427_block_draft_edits_after_send_claim.sql`
 
-The eight original filename corrections changed repository paths only. A seventeenth forward-only migration was then added to staging and the repository, adding indexes for the seven foreign keys identified by the performance advisor. The SQL files and resulting staging schema were inspected for the expected tables, columns, policies, bootstrap function and indexes. Supabase's migration ledger stores version/name metadata, not the original SQL text, so it cannot establish byte-for-byte identity between a historical applied SQL file and the repository copy.
+The eight original filename corrections changed repository paths only. A seventeenth forward-only migration was added to staging and the repository, adding indexes for the seven foreign keys identified by the performance advisor. An eighteenth forward-only migration updated the draft approval trigger to reject content edits after a send attempt has been claimed, preventing a concurrent edit from racing the provider send. The SQL files and resulting staging schema were inspected for the expected tables, columns, policies, bootstrap function and indexes. Supabase's migration ledger stores version/name metadata, not the original SQL text, so it cannot establish byte-for-byte identity between a historical applied SQL file and the repository copy.
 
-**Do not reapply these 17 migrations.** Before any future schema change, compare `supabase migration list` with the staging ledger and add a new forward-only migration. Do not rewrite already-applied migration contents or change their version identifiers again.
+**Do not reapply these 18 migrations.** Before any future schema change, compare `supabase migration list` with the staging ledger and add a new forward-only migration. Do not rewrite already-applied migration contents or change their version identifiers again.
 
 ## Implemented schema areas
 
