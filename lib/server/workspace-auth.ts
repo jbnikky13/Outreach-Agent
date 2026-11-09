@@ -46,7 +46,7 @@ export async function requireWorkspaceAccess(
 export async function authenticateBearerUser(
   request: Request
 ): Promise<{ ok: true; supabase: SupabaseClient; user: User } | { ok: false; status: 401; error: string }> {
-  const token = (request.headers.get("authorization") ?? "").match(/^Bearer\\s+(.+)$/i)?.[1];
+  const token = (request.headers.get("authorization") ?? "").match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return { ok: false, status: 401, error: "Sign in is required." };
   const supabase = createClient(required("SUPABASE_URL"), required("SUPABASE_SERVICE_ROLE_KEY"), {
     auth: { autoRefreshToken: false, persistSession: false }
