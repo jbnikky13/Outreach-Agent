@@ -2,28 +2,13 @@ name: Outreach Agent - Check Replies
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "*/30 * * * *"
 
 permissions:
   contents: read
 
 jobs:
-  sync:
+  disabled:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm install --no-audit --no-fund
-      - name: Sync mailbox
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          MAIL_PROVIDER: ${{ secrets.MAIL_PROVIDER }}
-          MAIL_CLIENT_ID: ${{ secrets.MAIL_CLIENT_ID }}
-          MAIL_CLIENT_SECRET: ${{ secrets.MAIL_CLIENT_SECRET }}
-          MAIL_REFRESH_TOKEN: ${{ secrets.MAIL_REFRESH_TOKEN }}
-          MAIL_TENANT_ID: ${{ secrets.MAIL_TENANT_ID }}
-        run: npx tsx scripts/check-replies.ts
+      - name: Explain disabled legacy workflow
+        run: echo "Reply sync is disabled until it supports per-user mailboxes and workspace-scoped matching."
