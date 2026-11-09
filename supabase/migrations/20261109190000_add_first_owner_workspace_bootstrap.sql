@@ -50,5 +50,4 @@ end;
 $function$;
 
 revoke all on function public.bootstrap_first_workspace(uuid, text) from public, anon, authenticated;
-grant usage on schema private to service_role;
 grant execute on function public.bootstrap_first_workspace(uuid, text) to service_role;
