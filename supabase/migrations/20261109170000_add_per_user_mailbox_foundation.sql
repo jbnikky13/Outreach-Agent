@@ -67,8 +67,8 @@ alter table private.mailbox_oauth_states enable row level security;
 alter table private.user_mailbox_preferences enable row level security;
 
 -- These tables are accessed only by authenticated server handlers using service_role.
-revoke all on schema private from public, anon, authenticated;
-grant usage on schema private to service_role;
+-- Preserve authenticated schema usage for existing workspace RLS helper functions.
+-- The credential tables themselves remain inaccessible to browser roles.
 revoke all on table
   private.mailbox_credentials,
   private.mailbox_oauth_states,
@@ -83,7 +83,7 @@ to service_role;
 -- Mailbox identity metadata is not a credential. Members can read their own
 -- connections; workspace owners/admins can inspect managed/shared mailbox metadata.
 drop policy if exists "workspace members read mailboxes" on public.mailboxes;
-drop policy if exists "workspace contributors manage mailboxes" on public.mailboxes;
+drop policy if exists "workspace admins manage mailboxes" on public.mailboxes;
 drop policy if exists "workspace members read own or managed mailboxes" on public.mailboxes;
 create policy "workspace members read own or managed mailboxes" on public.mailboxes
 for select to authenticated
