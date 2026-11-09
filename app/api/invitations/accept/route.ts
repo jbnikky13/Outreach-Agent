@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
-import { authenticateBearerUser } from "../../../../../lib/server/workspace-auth";
+import { authenticateBearerUser } from "../../../../lib/server/workspace-auth";
 
 export const runtime = "nodejs";
 
