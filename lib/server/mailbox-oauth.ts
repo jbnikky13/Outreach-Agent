@@ -37,6 +37,11 @@ export function hashOAuthState(state: string): string {
 export function createOAuthState(): string {
   return randomBytes(32).toString("base64url");
 }
+export function createPkcePair() {
+  const verifier = randomBytes(32).toString("base64url");
+  const challenge = createHash("sha256").update(verifier).digest("base64url");
+  return { verifier, challenge };
+}
 export function encryptProviderTokens(accessToken: string, refreshToken: string) {
   return {
     access_token_ciphertext: encryptMailboxToken(accessToken),
