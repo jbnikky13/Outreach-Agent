@@ -2,33 +2,13 @@ name: Outreach Agent - Send Approved
 
 on:
   workflow_dispatch:
-    inputs:
-      campaign_id:
-        description: "Supabase campaign UUID"
-        required: true
-        type: string
 
 permissions:
   contents: read
 
 jobs:
-  send-approved:
+  disabled:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm install --no-audit --no-fund
-      - name: Send only approved drafts
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          MAIL_PROVIDER: ${{ secrets.MAIL_PROVIDER }}
-          MAIL_CLIENT_ID: ${{ secrets.MAIL_CLIENT_ID }}
-          MAIL_CLIENT_SECRET: ${{ secrets.MAIL_CLIENT_SECRET }}
-          MAIL_REFRESH_TOKEN: ${{ secrets.MAIL_REFRESH_TOKEN }}
-          MAIL_FROM_ADDRESS: ${{ secrets.MAIL_FROM_ADDRESS }}
-          MAIL_TENANT_ID: ${{ secrets.MAIL_TENANT_ID }}
-          CAMPAIGN_ID: ${{ inputs.campaign_id }}
-        run: npm run send:approved
+      - name: Explain disabled legacy workflow
+        run: echo "Legacy global-mailbox sending is disabled. Use the per-user, human-approved send flow after controlled end-to-end testing is authorized."
