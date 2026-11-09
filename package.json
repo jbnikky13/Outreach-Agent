@@ -9,7 +9,8 @@
     "lint": "next lint",
     "send:approved": "tsx scripts/send-approved.ts",
     "typecheck": "tsc --noEmit",
-    "followups:generate": "tsx scripts/generate-followups.ts"
+    "followups:generate": "tsx scripts/generate-followups.ts",
+    "test": "node --import tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "latest",
