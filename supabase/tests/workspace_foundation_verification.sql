@@ -1,4 +1,5 @@
--- Run only after applying 20261109170000_add_workspace_foundation.sql
+-- Run only against the isolated Outreach Agent Staging project after all
+-- currently recorded staging migrations have been applied. These checks are read-only.
 -- to a staging database. These checks are read-only.
 
 do $$
