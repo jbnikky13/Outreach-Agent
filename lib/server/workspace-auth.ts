@@ -13,13 +13,13 @@ function required(name: string): string {
 export async function requireWorkspaceAccess(
   request: Request,
   allowedRoles: WorkspaceRole[] = ["owner", "admin", "member", "reviewer"]
-): Promise<{ ok: true; context: AuthorizedWorkspace } | { ok: false; status: 401 | 403; error: string }> {
+): Promise<{ ok: true; context: AuthorizedWorkspace } | { ok: false; status: 400 | 401 | 403; error: string }> {
   const token = (request.headers.get("authorization") ?? "").match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return { ok: false, status: 401, error: "Sign in is required." };
 
   const workspaceId = request.headers.get("x-workspace-id");
   if (!workspaceId || !/^[0-9a-f-]{36}$/i.test(workspaceId)) {
-    return { ok: false, status: 400 as 403, error: "An active workspace must be selected." };
+    return { ok: false, status: 400, error: "An active workspace must be selected." };
   }
 
   const supabase = createClient(required("SUPABASE_URL"), required("SUPABASE_SERVICE_ROLE_KEY"), {
