@@ -28,7 +28,7 @@ export function oauthConfig(provider: MailProvider) {
     clientSecret: process.env.MICROSOFT_OAUTH_CLIENT_SECRET?.trim() ?? "",
     authorizationEndpoint: "https://login.microsoftonline.com/" + encodeURIComponent(tenant) + "/oauth2/v2.0/authorize",
     tokenEndpoint: "https://login.microsoftonline.com/" + encodeURIComponent(tenant) + "/oauth2/v2.0/token",
-    scopes: ["openid", "profile", "email", "offline_access", "User.Read", "Mail.Send"],
+    scopes: ["openid", "profile", "email", "offline_access", "User.Read", "Mail.ReadWrite", "Mail.Send"],
   };
 }
 export function hashOAuthState(state: string): string {
