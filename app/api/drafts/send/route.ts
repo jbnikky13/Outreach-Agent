@@ -9,6 +9,10 @@ export async function POST(request: Request) {
   const access = await requireWorkspaceAccess(request, ["owner", "admin", "member"]);
   if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
 
+  // Never fall back to the legacy process-wide sender. Sending remains disabled
+  // until the draft is bound to an owner-authorized, encrypted per-user mailbox.
+  return NextResponse.json({ error: "Per-user mailbox connection and selection must be completed before sending is enabled." }, { status: 503 });
+
   try {
     const { prospectId, draftId } = await request.json();
     if (typeof prospectId !== "string" || typeof draftId !== "string") {
