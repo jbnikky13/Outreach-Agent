@@ -50,6 +50,25 @@ export async function getFreshMailboxAccessToken(
   return tokens.access_token;
 }
 
+export async function verifyMailboxIdentity(
+  provider: MailProvider,
+  accessToken: string,
+  expectedAccountId: string,
+  expectedEmail: string
+): Promise<void> {
+  const endpoint = provider === "gmail"
+    ? "https://openidconnect.googleapis.com/v1/userinfo"
+    : "https://graph.microsoft.com/v1.0/me?$select=id,mail,userPrincipalName";
+  const response = await fetch(endpoint, { headers: { authorization: "Bearer " + accessToken } });
+  const profile = await response.json();
+  const accountId = provider === "gmail" ? profile.sub : profile.id;
+  const email = provider === "gmail" ? profile.email : (profile.mail || profile.userPrincipalName);
+  if (!response.ok || typeof accountId !== "string" || accountId !== expectedAccountId ||
+      typeof email !== "string" || email.toLowerCase() !== expectedEmail.toLowerCase()) {
+    throw new Error("The connected provider identity no longer matches the mailbox record. Reconnect before sending.");
+  }
+}
+
 function validAddress(value: string) {
   return value.length <= 320 && /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(value) && !/[\r\n]/.test(value);
 }
