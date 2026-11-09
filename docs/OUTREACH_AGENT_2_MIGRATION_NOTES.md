@@ -70,3 +70,11 @@ Never enable outbound email on staging. Do not point staging environment variabl
 
 
 The current stable Vercel branch alias is `outreach-agent-git-feat-outreach-6fa427-nichole-godams-projects.vercel.app`; branch-scoped `APP_BASE_URL` is set to this alias so invitation redirects remain stable across preview redeployments.
+
+
+### Telegram company profile and contact-form details
+
+- `/profile Company name | https://website | industry | headquarters | contact email | description` saves the workspace's company profile. Members with owner/admin/member roles may update it.
+- `/contact <company-research-uuid> <https-contact-page-url> | extra context` creates a contact task using the saved company profile plus the optional details after the pipe.
+- The bot returns the proposed values in Telegram for review. The current implementation prepares the values and task record; it does not inspect arbitrary website HTML to map fields or automatically populate/submit remote forms.
+- Manual form completion remains the safe supported workflow until a browser-based form mapper is built and tested against site terms, CAPTCHA, anti-bot controls, and field validation.
