@@ -30,6 +30,8 @@ alter table public.telegram_link_codes enable row level security;
 alter table public.telegram_accounts enable row level security;
 revoke all on public.telegram_link_codes from anon, authenticated;
 revoke all on public.telegram_accounts from anon, authenticated;
+grant all on public.telegram_link_codes to service_role;
+grant all on public.telegram_accounts to service_role;
 
 create or replace function public.accept_workspace_invitation(
   p_token_hash text,
