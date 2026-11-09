@@ -34,3 +34,36 @@ The connected Supabase project reports six applied migrations dated 2026-09-27 a
 ## Non-goals
 
 This migration does not create Telegram commands, invite links, document upload flows, OAuth connections, or opportunity discovery. It does not alter live production data.
+
+
+## Staging project and Telegram research workflow
+
+Staging project: `xjyynmakdibnxtzunozt` in `eu-west-1`. The staging database has a repository-tracked baseline and the workspace, approval, invitation/Telegram, policy/index, and company research/contact-task migrations. No production rows were copied.
+
+### Telegram commands
+
+After a user links their Telegram account from Settings:
+
+- `/help` — list commands.
+- `/workspace` — show the linked workspace and role.
+- `/research <query>` — use Gemini web grounding to research up to five companies; save findings and public source URLs with status `needs_review`.
+- `/companies` — list recent research records.
+- `/contact <company-research-uuid> <https-contact-page-url>` — create a contact-form task containing the workspace company profile values.
+- `/tasks` — list tasks awaiting review.
+
+Research results are leads, not verified facts. A human must validate official domains, contact details, and sources. The bot does not bypass CAPTCHA, authentication, access controls, or site restrictions. It does not submit contact forms or send email from these commands. Contact tasks are preparation records for human review and manual submission.
+
+### Required Vercel Preview variables
+
+For branch `feat/outreach-agent-2-architecture`, Preview variables are scoped to the branch. The public Supabase URL and publishable key point to staging. `MAIL_PROVIDER=disabled` prevents staging email sending. `APP_BASE_URL` points to the branch preview deployment.
+
+The staging service-role variable and staging Gemini variable are intentionally set to non-secret placeholders until real staging-only values are entered. Do not replace them with production secrets. Set these securely in Vercel:
+- `SUPABASE_SERVICE_ROLE_KEY`: staging project's service-role secret only.
+- `GEMINI_API_KEY`: staging-specific Gemini API key.
+- `TELEGRAM_BOT_TOKEN`: dedicated staging bot token.
+- `TELEGRAM_WEBHOOK_SECRET`: random high-entropy secret (at least 32 characters).
+- `APP_BASE_URL`: current stable preview origin.
+
+Configure Supabase Auth Site URL and allowed redirect URL for the exact preview origin plus `/accept-invite`. Configure custom SMTP before invitation delivery tests. The staging project currently has no initial user or workspace; create the first staging auth user, then perform a controlled owner/workspace bootstrap before inviting other test users.
+
+Never enable outbound email on staging. Do not point staging environment variables at the production Supabase project.
