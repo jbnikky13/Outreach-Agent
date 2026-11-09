@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       }, { status: 409 });
     }
 
-    const { data: workspaceId, error: bootstrapError } = await supabase.rpc("bootstrap_first_workspace", {
+    const { data: workspaceId, error: bootstrapError } = await supabase.schema("private").rpc("bootstrap_first_workspace", {
       p_user_id: inviteData.user.id,
       p_workspace_name: workspaceName
     });
