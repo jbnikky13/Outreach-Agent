@@ -31,7 +31,7 @@ alter table public.telegram_accounts enable row level security;
 revoke all on public.telegram_link_codes from anon, authenticated;
 revoke all on public.telegram_accounts from anon, authenticated;
 
-create or replace function private.accept_workspace_invitation(
+create or replace function public.accept_workspace_invitation(
   p_token_hash text,
   p_user_id uuid,
   p_user_email text
@@ -80,7 +80,7 @@ begin
 end;
 $function$;
 
-create or replace function private.redeem_telegram_link_code(
+create or replace function public.redeem_telegram_link_code(
   p_code_hash text,
   p_telegram_user_id bigint,
   p_telegram_chat_id bigint
@@ -122,7 +122,7 @@ begin
 end;
 $function$;
 
-revoke all on function private.accept_workspace_invitation(text, uuid, text) from public, anon, authenticated;
-revoke all on function private.redeem_telegram_link_code(text, bigint, bigint) from public, anon, authenticated;
-grant execute on function private.accept_workspace_invitation(text, uuid, text) to service_role;
-grant execute on function private.redeem_telegram_link_code(text, bigint, bigint) to service_role;
+revoke all on function public.accept_workspace_invitation(text, uuid, text) from public, anon, authenticated;
+revoke all on function public.redeem_telegram_link_code(text, bigint, bigint) from public, anon, authenticated;
+grant execute on function public.accept_workspace_invitation(text, uuid, text) to service_role;
+grant execute on function public.redeem_telegram_link_code(text, bigint, bigint) to service_role;
