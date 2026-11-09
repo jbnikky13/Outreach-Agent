@@ -36,13 +36,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Draft content changed after approval. Review and approve it again." }, { status: 409 });
     }
 
-    const nowMs = Date.now();
-    const staleBefore = new Date(nowMs - 10 * 60 * 1000).toISOString();
     const { data: claimed, error: claimError } = await supabase.from("email_drafts")
-      .update({ send_attempted_at: new Date(nowMs).toISOString() })
+      .update({ send_attempted_at: new Date().toISOString() })
       .eq("id", draftId).eq("workspace_id", workspaceId).eq("status", "approved")
-      .is("provider_message_id", null)
-      .or("send_attempted_at.is.null,send_attempted_at.lt." + staleBefore)
+      .is("provider_message_id", null).is("send_attempted_at", null)
       .select("id").maybeSingle();
 
     if (claimError) throw claimError;
@@ -52,9 +49,15 @@ export async function POST(request: Request) {
     try {
       result = await sendMail(prospect.email, draft.subject, draft.body);
     } catch (mailError) {
-      await supabase.from("email_drafts").update({ send_attempted_at: null })
-        .eq("id", draftId).eq("workspace_id", workspaceId).eq("status", "approved").is("provider_message_id", null);
-      throw mailError;
+      // Provider/network failures can be ambiguous: the provider may have accepted
+      // the message before the response was lost. Keep the claim locked and require
+      // manual reconciliation rather than risking a duplicate email.
+      console.error("email send outcome requires reconciliation", mailError);
+      return NextResponse.json({
+        success: false, pendingReconciliation: true,
+        warning: "The send outcome could not be confirmed. Do not retry until the mailbox is checked and this attempt is reconciled.",
+        draftId
+      }, { status: 202 });
     }
 
     const sentAt = new Date().toISOString();
