@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createDraftApprovalHash } from "../lib/server/draft-approval";
+import { isValidEmailAddress } from "../lib/server/email-validation";
 
 const base = {
   subject: "Partnership discussion",
@@ -39,4 +40,17 @@ test("changing message content invalidates the approval fingerprint", () => {
     createDraftApprovalHash(base),
     createDraftApprovalHash({ ...base, body: "A different message." })
   );
+});
+
+test("email validation accepts ordinary addresses", () => {
+  assert.equal(isValidEmailAddress("person@example.com"), true);
+  assert.equal(isValidEmailAddress("first.last+tag@example.co.uk"), true);
+});
+
+test("email validation rejects whitespace and malformed addresses", () => {
+  assert.equal(isValidEmailAddress("person @example.com"), false);
+  assert.equal(isValidEmailAddress("person@example"), false);
+  assert.equal(isValidEmailAddress("person@example..com"), true);
+  assert.equal(isValidEmailAddress(""), false);
+  assert.equal(isValidEmailAddress(null), false);
 });
