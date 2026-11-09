@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   const auth = await authenticateBearerUser(request);
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
-  if (!auth.user.email) return NextResponse.json({ error: "Your account does not have a verified email address." }, { status: 403 });
+  if (!auth.user.email || !auth.user.email_confirmed_at) return NextResponse.json({ error: "Verify the invited email address before accepting this invitation." }, { status: 403 });
 
   try {
     const body = await request.json();
