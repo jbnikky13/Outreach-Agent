@@ -324,7 +324,7 @@ export async function POST(request: Request) {
       const proposedPreview = Object.entries(values)
         .filter(([, value]) => typeof value === "string" && value.trim())
         .map(([key, value]) => key + ": " + String(value).slice(0, 220))
-        .join("\\n");
+        .join("\n");
       await reply(chatId, error || !task
         ? "Could not prepare the contact form task."
         : "Contact-form task prepared for " + company.company_name + ".\nURL: " + formUrl.toString() +
