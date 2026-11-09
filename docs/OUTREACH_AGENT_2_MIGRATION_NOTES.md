@@ -29,7 +29,7 @@ The connected Supabase project reports six applied migrations dated 2026-09-27 a
 - Add Telegram account linking via one-time authenticated code; never authorize by Telegram username/chat ID alone.
 - Add mailbox credential isolation and explicit mailbox selection. The current mail adapter still uses process-wide environment credentials.
 - Add company document storage/extraction and evidence provenance in a separate migration.
-- Restrict authenticated browser updates on email drafts to subject/body only; a database trigger resets status and clears approval metadata whenever either field changes. Apply `20261109200000_lock_draft_approval_fields.sql` after the approval-metadata migration.\n- Add tests for RLS, route authorization, role restrictions, token replay, approval invalidation on edits, and cross-tenant isolation.
+- Restrict authenticated browser updates on email drafts to subject/body only; a database trigger resets status and clears approval metadata whenever either field changes. Apply `20261109200000_lock_draft_approval_fields.sql` after the approval-metadata migration.\n- Email send attempts now fail closed on ambiguous provider/network outcomes: the attempt claim is retained and automatic stale-claim retries are disabled. A mailbox reconciliation procedure is still needed before safely releasing an uncertain attempt.\n- Add tests for RLS, route authorization, role restrictions, token replay, approval invalidation on edits, ambiguous send recovery, and cross-tenant isolation.
 
 ## Non-goals
 
