@@ -322,3 +322,19 @@ Every route must authenticate, resolve workspace membership server-side, validat
 ## 14. Immediate next implementation task
 
 Complete Phase 0 by obtaining and reviewing the complete current Supabase schema, RLS policies and repository route inventory. The initial repository inspection found security-sensitive service-role routes and global mailbox configuration, so the first code changes should be authentication/workspace enforcement and mailbox isolation—not Telegram commands or bulk prospect discovery.
+
+## 11. First-owner bootstrap (staging implementation)
+
+The first workspace is created through a one-time server-only bootstrap route; there is no public signup or client-side workspace-creation API.
+
+Required **Preview-only** Vercel environment variables on `feat/outreach-agent-2-architecture`:
+
+- `WORKSPACE_BOOTSTRAP_SECRET`: a fresh random secret of at least 32 characters.
+- `WORKSPACE_BOOTSTRAP_EMAIL`: the exact email address permitted to become the first owner.
+- Existing server-side `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `APP_BASE_URL`.
+
+Call `POST /api/admin/bootstrap` once, with JSON `{"email":"configured-owner@example.com","workspaceName":"Company Workspace"}` and header `x-workspace-bootstrap-secret: <secret>`. Do not put the secret in a browser bundle, Telegram message, source file, query string, or chat. The endpoint only accepts the configured owner email. It sends a Supabase Auth invitation, then calls a database function that serializes concurrent attempts and refuses to create a workspace if one already exists. The database function is executable only by `service_role`.
+
+After the owner verifies the invitation email, they can sign in, invite additional users from Settings, and generate a one-time Telegram linking code. The initial bootstrap secret should be removed from the Preview environment after a successful bootstrap. If the endpoint reports an ambiguous failure, inspect staging Auth users and workspace counts before retrying.
+
+**Current status:** the staging migration has been applied. Staging currently has zero Auth users, zero workspaces and zero memberships, so no owner invitation or workspace has yet been created. The first-owner email and one-time Preview secret still need to be configured. This procedure has not been run against Production.
