@@ -36,7 +36,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Only the draft creator can send from the mailbox bound to this draft." }, { status: 403 });
     }
 
-    const actualHash = createHash("sha256").update(JSON.stringify({ subject: draft.subject, body: draft.body })).digest("hex");
+    const actualHash = createHash("sha256").update(JSON.stringify({
+      subject: draft.subject,
+      body: draft.body,
+      recipient: prospect.email.trim().toLowerCase(),
+      mailboxId: draft.mailbox_id
+    })).digest("hex");
     if (actualHash !== draft.approved_content_hash) {
       return NextResponse.json({ error: "Draft content changed after approval. Review and approve it again." }, { status: 409 });
     }
