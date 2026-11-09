@@ -223,7 +223,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    const profileMatch = text.match(/^\/profile(?:@\\w+)?\\s+([\\s\\S]{3,1800})$/i);
+    const profileMatch = text.match(/^\/profile(?:@\w+)?\s+([\s\S]{3,1800})$/i);
     if (profileMatch) {
       if (!["owner", "admin", "member"].includes(membership.role)) {
         await reply(chatId, "Your workspace role can review company details but cannot edit the profile.");
@@ -241,7 +241,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true });
       }
       const contactEmail = emailRaw || null;
-      if (contactEmail && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(contactEmail)) {
+      if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
         await reply(chatId, "That contact email does not look valid.");
         return NextResponse.json({ ok: true });
       }
@@ -297,7 +297,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true });
       }
       const formUrl = new URL(contactMatch[2]);
-      if (!["https:", "www"].includes(formUrl.protocol === "https:" ? "https:" : "")) {
+      if (formUrl.protocol !== "https:") {
         await reply(chatId, "Only HTTPS contact-form URLs are accepted.");
         return NextResponse.json({ ok: true });
       }
@@ -327,7 +327,7 @@ export async function POST(request: Request) {
         .join("\\n");
       await reply(chatId, error || !task
         ? "Could not prepare the contact form task."
-        : "Contact-form task prepared for " + company.company_name + ".\\nURL: " + formUrl.toString() +
+        : "Contact-form task prepared for " + company.company_name + ".\nURL: " + formUrl.toString() +
           "\\nTask ID: " + task.id + "\\n\\nProposed details:\\n" + (proposedPreview || "No company profile details configured.") +
           "\\n\\nStatus: needs review. Verify each field and submit manually.");
       return NextResponse.json({ ok: true });
