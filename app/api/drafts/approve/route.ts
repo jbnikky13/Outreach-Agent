@@ -15,17 +15,33 @@ export async function POST(request: Request) {
     }
 
     const { supabase, user, workspaceId } = access.context;
-    const { data: draft, error: readError } = await supabase.from("email_drafts")
-      .select("id,prospect_id,subject,body,status,provider_message_id")
-      .eq("id", draftId).eq("prospect_id", prospectId).eq("workspace_id", workspaceId).maybeSingle();
+    const [{ data: draft, error: readError }, { data: prospect, error: prospectError }] = await Promise.all([
+      supabase.from("email_drafts")
+        .select("id,prospect_id,subject,body,status,provider_message_id,mailbox_id")
+        .eq("id", draftId).eq("prospect_id", prospectId).eq("workspace_id", workspaceId).maybeSingle(),
+      supabase.from("prospects").select("id,email")
+        .eq("id", prospectId).eq("workspace_id", workspaceId).maybeSingle()
+    ]);
 
     if (readError || !draft) return NextResponse.json({ error: "Draft not found in this workspace." }, { status: 404 });
+    if (prospectError || !prospect) return NextResponse.json({ error: "Prospect not found in this workspace." }, { status: 404 });
     if (draft.status !== "pending" || draft.provider_message_id) {
       return NextResponse.json({ error: "Only an unsent pending draft can be approved." }, { status: 409 });
     }
     if (!draft.subject?.trim() || !draft.body?.trim()) return NextResponse.json({ error: "Draft content is incomplete." }, { status: 400 });
+    if (!draft.mailbox_id) return NextResponse.json({ error: "This draft has no member-owned mailbox binding. Generate a new draft after selecting your mailbox." }, { status: 409 });
+    if (typeof prospect.email !== "string" || !/^[^\\s<>@]+@[^\\s<>@]+\\.[^\\s<>@]+$/.test(prospect.email)) {
+      return NextResponse.json({ error: "The prospect must have a valid email address before approval." }, { status: 400 });
+    }
 
-    const hash = createHash("sha256").update(JSON.stringify({ subject: draft.subject, body: draft.body })).digest("hex");
+    // Approval binds the exact message, recipient, and sender mailbox.
+    // Any later recipient/content/mailbox change makes the send-time hash fail.
+    const hash = createHash("sha256").update(JSON.stringify({
+      subject: draft.subject,
+      body: draft.body,
+      recipient: prospect.email.trim().toLowerCase(),
+      mailboxId: draft.mailbox_id
+    })).digest("hex");
     const { data: approved, error } = await supabase.from("email_drafts").update({
       status: "approved", approved_at: new Date().toISOString(),
       approved_by: user.id, approved_content_hash: hash
@@ -37,7 +53,7 @@ export async function POST(request: Request) {
     await supabase.from("audit_logs").insert({
       workspace_id: workspaceId, actor_id: user.id, event_type: "draft.approved",
       entity_type: "email_draft", entity_id: draftId,
-      metadata: { content_hash: hash, prospect_id: prospectId }
+      metadata: { content_hash: hash, prospect_id: prospectId, recipient: prospect.email.trim().toLowerCase(), mailbox_id: draft.mailbox_id }
     });
     return NextResponse.json({ success: true, draft: approved });
   } catch (error) {
