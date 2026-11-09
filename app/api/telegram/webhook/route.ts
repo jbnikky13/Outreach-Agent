@@ -138,6 +138,68 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    if (/^\/connectmail(?:@\w+)?$/i.test(text)) {
+      const base = required("APP_BASE_URL");
+      const connectUrl = new URL("/mailboxes", base);
+      await reply(chatId, "Connect your own Gmail or Outlook account here. Open the link, sign in with your Outreach Agent account, and complete the provider authorization:\n" + connectUrl.toString() + "\n\nYour mailbox is private to your account. Connecting it does not send email.");
+      return NextResponse.json({ ok: true });
+    }
+
+    if (/^\/mailboxes(?:@\w+)?$/i.test(text)) {
+      const { data: rows, error } = await supabase.from("mailboxes")
+        .select("id,provider,email,active,revoked_at")
+        .eq("workspace_id", account.workspace_id).eq("connected_by", account.user_id)
+        .order("created_at", { ascending: false }).limit(10);
+      const { data: preference } = await supabase.from("user_mailbox_preferences")
+        .select("mailbox_id").eq("workspace_id", account.workspace_id).eq("user_id", account.user_id).maybeSingle();
+      if (error) {
+        await reply(chatId, "Could not load your mailboxes. Try again later.");
+      } else if (!rows?.length) {
+        await reply(chatId, "You have no connected mailboxes yet. Use /connectmail to connect your own Gmail or Outlook account.");
+      } else {
+        await reply(chatId, rows.map((row: any) =>
+          (row.provider === "gmail" ? "Gmail" : "Outlook") + ": " + row.email +
+          (row.active && !row.revoked_at ? "" : " (disconnected)") +
+          (preference?.mailbox_id === row.id ? " — SELECTED" : "") +
+          "\nID: " + row.id
+        ).join("\n\n") + "\n\nUse /selectmail MAILBOX_ID to choose your sender.");
+      }
+      return NextResponse.json({ ok: true });
+    }
+
+    const selectMailboxMatch = text.match(/^\/selectmail(?:@\w+)?\s+([0-9a-f-]{36})$/i);
+    if (selectMailboxMatch) {
+      const mailboxId = selectMailboxMatch[1];
+      const { data: mailbox } = await supabase.from("mailboxes")
+        .select("id,provider,email,active,revoked_at").eq("id", mailboxId)
+        .eq("workspace_id", account.workspace_id).eq("connected_by", account.user_id).maybeSingle();
+      if (!mailbox || !mailbox.active || mailbox.revoked_at) {
+        await reply(chatId, "That mailbox is unavailable or disconnected. Use /mailboxes to see your active accounts.");
+        return NextResponse.json({ ok: true });
+      }
+      const { data: credential } = await supabase.from("mailbox_credentials").select("mailbox_id")
+        .eq("mailbox_id", mailboxId).eq("workspace_id", account.workspace_id).eq("user_id", account.user_id).maybeSingle();
+      if (!credential) {
+        await reply(chatId, "That mailbox has no valid stored credentials. Reconnect it using /connectmail.");
+        return NextResponse.json({ ok: true });
+      }
+      const { error } = await supabase.from("user_mailbox_preferences").upsert({
+        workspace_id: account.workspace_id, user_id: account.user_id,
+        mailbox_id: mailboxId, updated_at: new Date().toISOString()
+      }, { onConflict: "workspace_id,user_id" });
+      if (error) {
+        await reply(chatId, "Could not select that mailbox. Please try again.");
+      } else {
+        await supabase.from("audit_logs").insert({
+          workspace_id: account.workspace_id, actor_id: account.user_id,
+          event_type: "mailbox.selected", entity_type: "mailbox", entity_id: mailboxId,
+          metadata: { provider: mailbox.provider, email: mailbox.email, source: "telegram" }
+        });
+        await reply(chatId, "Selected sender: " + mailbox.email + ". New drafts will be bound to this mailbox. Sending is still disabled pending final safety checks.");
+      }
+      return NextResponse.json({ ok: true });
+    }
+
     if (/^\/help(?:@\w+)?$/i.test(text)) {
       await reply(chatId, [
         "Outreach Agent commands:",
@@ -147,7 +209,10 @@ export async function POST(request: Request) {
         "/companies — list recent company research",
         "/contact <company-research-id> <https://contact-page> | details — prepare a contact-form task",
         "/tasks — list contact tasks awaiting review",
-        "Research and form details are saved as unverified until a human checks them. The bot does not auto-submit forms or send email."
+        "Research and form details are saved as unverified until a human checks them. The bot does not auto-submit forms or send email.",
+        "/connectmail — open secure Gmail/Outlook connection settings",
+        "/mailboxes — list your connected mailboxes",
+        "/selectmail <mailbox-id> — choose your sender mailbox"
       ].join("\n"));
       return NextResponse.json({ ok: true });
     }
