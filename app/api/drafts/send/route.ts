@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 import { requireWorkspaceAccess } from "../../../../lib/server/workspace-auth";
-import { getFreshMailboxAccessToken, sendThroughMailbox } from "../../../../lib/server/mailbox-send";
+import { getFreshMailboxAccessToken, sendThroughMailbox, verifyMailboxIdentity } from "../../../../lib/server/mailbox-send";
 import { safeProvider } from "../../../../lib/server/mailbox-oauth";
 
 export const runtime = "nodejs";
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     }
 
     const { data: mailbox } = await supabase.from("mailboxes")
-      .select("id,provider,email,active,revoked_at,connected_by")
+      .select("id,provider,email,provider_inbox_id,active,revoked_at,connected_by")
       .eq("id", draft.mailbox_id).eq("workspace_id", workspaceId)
       .eq("connected_by", user.id).eq("active", true).is("revoked_at", null).maybeSingle();
     if (!mailbox || !safeProvider(mailbox.provider)) {
@@ -72,6 +72,13 @@ export async function POST(request: Request) {
     } catch (error) {
       console.error("mailbox token refresh failed", error);
       return NextResponse.json({ error: "Mailbox authorization needs attention. Reconnect the selected account before sending." }, { status: 409 });
+    }
+
+    try {
+      await verifyMailboxIdentity(mailbox.provider, accessToken, mailbox.provider_inbox_id, mailbox.email);
+    } catch (error) {
+      console.error("mailbox identity verification failed", error);
+      return NextResponse.json({ error: "The provider account no longer matches your selected mailbox. Reconnect before sending." }, { status: 409 });
     }
 
     const { data: claimed, error: claimError } = await supabase.from("email_drafts")
