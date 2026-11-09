@@ -186,7 +186,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    const contactMatch = text.match(/^\/contact(?:@\w+)?\s+([0-9a-f-]{36})\s+(https:\/\/\S+)$/i);
+    const contactMatch = text.match(/^\/contact(?:@\w+)?\s+([0-9a-f-]{36})\s+(https:\/\/\S+?)(?:\s+\|\s+([\s\S]{3,1500}))?$/i);
     if (contactMatch) {
       if (!["owner", "admin", "member"].includes(membership.role)) {
         await reply(chatId, "Your workspace role can review contact tasks but cannot create them.");
@@ -206,18 +206,26 @@ export async function POST(request: Request) {
       const { data: profile } = await supabase.from("company_profiles")
         .select("company_name,website,industry,description,headquarters,contact_email")
         .eq("workspace_id", account.workspace_id).maybeSingle();
-      const values = profile ? {
+      const values: Record<string, unknown> = profile ? {
         company_name: profile.company_name, website: profile.website, industry: profile.industry,
         description: profile.description, headquarters: profile.headquarters, contact_email: profile.contact_email
       } : {};
+      const userProvidedDetails = contactMatch[3]?.trim();
+      if (userProvidedDetails) values.additional_context = userProvidedDetails;
       const { data: task, error } = await supabase.from("contact_form_tasks").insert({
         workspace_id: account.workspace_id, company_research_id: company.id, form_url: formUrl.toString(),
-        purpose: "Company contact form outreach", proposed_values: values,
+        purpose: userProvidedDetails ? userProvidedDetails.slice(0, 180) : "Company contact form outreach", proposed_values: values,
         field_hints: [], status: "needs_review", created_by: account.user_id
       }).select("id").single();
+      const proposedPreview = Object.entries(values)
+        .filter(([, value]) => typeof value === "string" && value.trim())
+        .map(([key, value]) => key + ": " + String(value).slice(0, 220))
+        .join("\\n");
       await reply(chatId, error || !task
         ? "Could not prepare the contact form task."
-        : "Contact-form task prepared for " + company.company_name + ".\nURL: " + formUrl.toString() + "\nTask ID: " + task.id + "\nStatus: needs review. Open the web app to verify each field and submit manually.");
+        : "Contact-form task prepared for " + company.company_name + ".\\nURL: " + formUrl.toString() +
+          "\\nTask ID: " + task.id + "\\n\\nProposed details:\\n" + (proposedPreview || "No company profile details configured.") +
+          "\\n\\nStatus: needs review. Verify each field and submit manually.");
       return NextResponse.json({ ok: true });
     }
 
