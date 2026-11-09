@@ -74,7 +74,7 @@ The first-owner bootstrap has not been run. No owner invitation, Telegram link, 
 
 ## Staging verification checklist
 
-1. Confirm all 16 repository migration versions/names match the staging ledger.
+1. Confirm all 18 repository migration versions/names match the staging ledger.
 2. Run read-only schema, RLS, grants and function checks against staging.
 3. Run Supabase security and performance advisors; review each finding rather than blindly dropping indexes.
 4. Run `npm run typecheck`, `npm test` and `npm run build`.
