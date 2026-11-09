@@ -157,7 +157,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    const researchMatch = text.match(/^\/research(?:@\w+)?\s+(.{3,400})$/is);
+    const researchMatch = text.match(/^\/research(?:@\w+)?\s+([\s\S]{3,400})$/i);
     if (researchMatch) {
       if (!["owner", "admin", "member"].includes(membership.role)) {
         await reply(chatId, "Your workspace role can review research but cannot create it.");
