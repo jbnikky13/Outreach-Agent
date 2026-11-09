@@ -144,7 +144,7 @@ export async function POST(request: Request) {
         "/workspace — show your linked workspace",
         "/research <industry, location, or target> — find companies using public web sources",
         "/companies — list recent company research",
-        "/contact <company-research-id> <https://contact-page> — prepare a contact-form task",
+        "/contact <company-research-id> <https://contact-page> | details — prepare a contact-form task",
         "/tasks — list contact tasks awaiting review",
         "Research and form details are saved as unverified until a human checks them. The bot does not auto-submit forms or send email."
       ].join("\n"));
