@@ -108,12 +108,18 @@ update public.email_threads t
    and p.owner_id is not null;
 
 update public.activities a
-   set owner_id = coalesce(c.owner_id, p.owner_id)
+   set owner_id = c.owner_id
   from public.campaigns c
-  full join public.prospects p on p.id = a.prospect_id
- where (a.campaign_id = c.id or a.campaign_id is null)
+ where a.campaign_id = c.id
    and a.owner_id is null
-   and coalesce(c.owner_id, p.owner_id) is not null;
+   and c.owner_id is not null;
+
+update public.activities a
+   set owner_id = p.owner_id
+  from public.prospects p
+ where a.prospect_id = p.id
+   and a.owner_id is null
+   and p.owner_id is not null;
 
 update public.campaigns t
    set workspace_id = w.id
@@ -215,6 +221,13 @@ $function$;
 revoke all on function private.has_workspace_role(uuid, text[]) from public;
 grant usage on schema private to authenticated;
 grant execute on function private.has_workspace_role(uuid, text[]) to authenticated;
+
+-- Explicit Data API grants for the new tables. Invitations and audit writes
+-- remain server-only; RLS still decides which rows authenticated users see.
+grant select, update on public.workspaces to authenticated;
+grant select on public.workspace_members to authenticated;
+grant select, insert, update, delete on public.company_profiles to authenticated;
+grant select on public.audit_logs to authenticated;
 
 alter table public.workspaces enable row level security;
 alter table public.workspace_members enable row level security;
