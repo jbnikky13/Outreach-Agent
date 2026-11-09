@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createHash, randomBytes } from "node:crypto";
-import { requireWorkspaceAccess } from "../../../../../lib/server/workspace-auth";
+import { requireWorkspaceAccess } from "../../../../lib/server/workspace-auth";
 
 export const runtime = "nodejs";
 
