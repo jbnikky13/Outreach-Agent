@@ -14,6 +14,19 @@ export async function POST(request: Request) {
     }
 
     const { supabase, user, workspaceId } = access.context;
+
+    const { data: mailboxPreference } = await supabase.from("user_mailbox_preferences")
+      .select("mailbox_id").eq("workspace_id", workspaceId).eq("user_id", user.id).maybeSingle();
+    if (!mailboxPreference?.mailbox_id) {
+      return NextResponse.json({ error: "Connect and select your own Gmail or Outlook mailbox before generating outreach drafts." }, { status: 409 });
+    }
+    const { data: selectedMailbox } = await supabase.from("mailboxes")
+      .select("id,provider,email,active,connected_by,revoked_at")
+      .eq("id", mailboxPreference.mailbox_id).eq("workspace_id", workspaceId)
+      .eq("connected_by", user.id).eq("active", true).is("revoked_at", null).maybeSingle();
+    if (!selectedMailbox) {
+      return NextResponse.json({ error: "Your selected mailbox is unavailable or no longer connected. Select an active mailbox you own." }, { status: 409 });
+    }
     const [{ data: campaign, error: campaignError }, { data: prospect, error: prospectError }] = await Promise.all([
       supabase.from("campaigns")
         .select("id,name,topic,goal,audience,talking_points,tone,personalization_instructions")
@@ -62,7 +75,9 @@ export async function POST(request: Request) {
       workspace_id: workspaceId,
       subject: parsed.subject.trim(),
       body: parsed.body.trim(),
-      status: "pending"
+      status: "pending",
+      mailbox_id: selectedMailbox.id,
+      created_by: user.id
     }).select("id,status,subject,body").single();
 
     if (saveError || !saved) {
