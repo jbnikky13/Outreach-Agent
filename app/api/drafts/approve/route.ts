@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createDraftApprovalHash } from "../../../../lib/server/draft-approval";
+import { isValidEmailAddress } from "../../../../lib/server/email-validation";
 import { requireWorkspaceAccess } from "../../../../lib/server/workspace-auth";
 
 export const runtime = "nodejs";
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
     }
     if (!draft.subject?.trim() || !draft.body?.trim()) return NextResponse.json({ error: "Draft content is incomplete." }, { status: 400 });
     if (!draft.mailbox_id) return NextResponse.json({ error: "This draft has no member-owned mailbox binding. Generate a new draft after selecting your mailbox." }, { status: 409 });
-    if (typeof prospect.email !== "string" || !/^[^\\s<>@]+@[^\\s<>@]+\\.[^\\s<>@]+$/.test(prospect.email)) {
+    if (!isValidEmailAddress(prospect.email)) {
       return NextResponse.json({ error: "The prospect must have a valid email address before approval." }, { status: 400 });
     }
 
