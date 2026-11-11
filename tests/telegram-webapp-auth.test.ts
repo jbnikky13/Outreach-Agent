@@ -14,7 +14,7 @@ function makeInitData(overrides: Record<string, string> = {}) {
     ...Object.entries(overrides)
   ]);
   const check = [...fields.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
     .map(([key, value]) => key + "=" + value)
     .join("\n");
   const secret = createHmac("sha256", "WebAppData").update(BOT_TOKEN).digest();
