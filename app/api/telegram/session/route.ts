@@ -21,7 +21,7 @@ function requestCookie(request: Request, name: string): string | null {
 function isSameOrigin(request: Request): boolean {
   try {
     const origin = request.headers.get("origin");
-    return !!origin && new URL(origin).origin === new URL(request.url).origin;
+    return !!origin && new URL(origin).origin === new URL(required("APP_BASE_URL")).origin;
   } catch { return false; }
 }
 
