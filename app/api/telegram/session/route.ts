@@ -2,11 +2,28 @@ import { NextResponse } from "next/server";
 import { createHash, randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { validateTelegramWebAppInitData } from "../../../../lib/server/telegram-webapp-auth";
+import { requireWorkspaceAccess } from "../../../../lib/server/workspace-auth";
 
 export const runtime = "nodejs";
 
 const SESSION_COOKIE = "oa_telegram_session";
 const SESSION_TTL_SECONDS = 8 * 60 * 60;
+
+function requestCookie(request: Request, name: string): string | null {
+  for (const part of (request.headers.get("cookie") ?? "").split(";")) {
+    const separator = part.indexOf("=");
+    if (separator < 0 || part.slice(0, separator).trim() !== name) continue;
+    try { return decodeURIComponent(part.slice(separator + 1).trim()); } catch { return null; }
+  }
+  return null;
+}
+
+function isSameOrigin(request: Request): boolean {
+  try {
+    const origin = request.headers.get("origin");
+    return !!origin && new URL(origin).origin === new URL(required("APP_BASE_URL")).origin;
+  } catch { return false; }
+}
 
 function required(name: string): string {
   const value = process.env[name]?.trim();
@@ -20,9 +37,7 @@ function reject(message: string, status: number) {
 
 export async function POST(request: Request) {
   try {
-    const origin = request.headers.get("origin");
-    const appOrigin = new URL(required("APP_BASE_URL")).origin;
-    if (!origin || new URL(origin).origin !== appOrigin) {
+    if (!isSameOrigin(request)) {
       return reject("Request origin is not allowed.", 403);
     }
 
@@ -94,7 +109,7 @@ export async function POST(request: Request) {
       name: SESSION_COOKIE,
       value: rawSessionToken,
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
       maxAge: SESSION_TTL_SECONDS
@@ -105,4 +120,44 @@ export async function POST(request: Request) {
     console.error("Telegram Mini App session exchange failed", error);
     return reject("Could not authenticate this Telegram session.", 500);
   }
+}
+
+export async function GET(request: Request) {
+  const access = await requireWorkspaceAccess(request);
+  if (!access.ok) return reject(access.error, access.status);
+  const response = NextResponse.json({
+    authenticated: true,
+    workspaceId: access.context.workspaceId,
+    role: access.context.role,
+    userId: access.context.user.id
+  });
+  response.headers.set("Cache-Control", "no-store");
+  return response;
+}
+
+export async function DELETE(request: Request) {
+  if (!isSameOrigin(request)) return reject("Request origin is not allowed.", 403);
+  const rawToken = requestCookie(request, SESSION_COOKIE);
+  if (rawToken && rawToken.length >= 32 && rawToken.length <= 128) {
+    const supabase = createClient(required("SUPABASE_URL"), required("SUPABASE_SERVICE_ROLE_KEY"), {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+    const sessionHash = createHash("sha256").update(rawToken).digest("hex");
+    await supabase.from("telegram_web_sessions")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("session_hash", sessionHash)
+      .is("revoked_at", null);
+  }
+  const response = NextResponse.json({ authenticated: false });
+  response.cookies.set({
+    name: SESSION_COOKIE,
+    value: "",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0
+  });
+  response.headers.set("Cache-Control", "no-store");
+  return response;
 }
