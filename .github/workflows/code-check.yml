@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, feat/outreach-agent-2-architecture]
   workflow_dispatch:
 
 permissions:
