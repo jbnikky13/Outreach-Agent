@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     }
 
     if (/^\/start(?:\s|$)/i.test(text)) {
-      const miniAppUrl = new URL("/mini-app", required("APP_BASE_URL")).toString();
+      const miniAppUrl = new URL("/mini-app", request.url).toString();
       await reply(
         chatId,
         "Welcome to Outreach Agent. Open your workspace below. If your Telegram account is not linked yet, contact your workspace administrator.",
