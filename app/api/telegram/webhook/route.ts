@@ -24,12 +24,12 @@ function safeEqual(a: string, b: string) {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
-async function reply(chatId: number, text: string) {
+async function reply(chatId: number, text: string, replyMarkup?: unknown) {
   const token = required("TELEGRAM_BOT_TOKEN");
   const response = await fetch("https://api.telegram.org/bot" + token + "/sendMessage", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true })
+    body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true, ...(replyMarkup ? { reply_markup: replyMarkup } : {}) })
   });
   if (!response.ok) throw new Error("Telegram sendMessage failed: " + response.status);
 }
@@ -105,7 +105,12 @@ export async function POST(request: Request) {
     }
 
     if (/^\/start(?:\s|$)/i.test(text)) {
-      await reply(chatId, "Welcome to Outreach Agent. Link your account from Settings in the web app using /link YOUR_CODE. Then use /help.");
+      const miniAppUrl = new URL("/mini-app", required("APP_BASE_URL")).toString();
+      await reply(
+        chatId,
+        "Welcome to Outreach Agent. Open your workspace below. If your Telegram account is not linked yet, contact your workspace administrator.",
+        { inline_keyboard: [[{ text: "Open Outreach Agent", web_app: { url: miniAppUrl } }]] }
+      );
       return NextResponse.json({ ok: true });
     }
 
