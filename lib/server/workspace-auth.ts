@@ -32,7 +32,7 @@ export async function requireWorkspaceAccess(
   request: Request,
   allowedRoles: WorkspaceRole[] = ["owner", "admin", "member", "reviewer"]
 ): Promise<{ ok: true; context: AuthorizedWorkspace } | { ok: false; status: 400 | 401 | 403; error: string }> {
-  const bearerToken = (request.headers.get("authorization") ?? "").match(/^Bearer\\s+(.+)$/i)?.[1];
+  const bearerToken = (request.headers.get("authorization") ?? "").match(/^Bearer\s+(.+)$/i)?.[1];
   const telegramToken = bearerToken ? null : cookieValue(request, TELEGRAM_SESSION_COOKIE);
   if (!bearerToken && !telegramToken) return { ok: false, status: 401, error: "Sign in is required." };
 
@@ -96,7 +96,7 @@ export async function requireWorkspaceAccess(
 export async function authenticateBearerUser(
   request: Request
 ): Promise<{ ok: true; supabase: SupabaseClient; user: User } | { ok: false; status: 401; error: string }> {
-  const token = (request.headers.get("authorization") ?? "").match(/^Bearer\\s+(.+)$/i)?.[1];
+  const token = (request.headers.get("authorization") ?? "").match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return { ok: false, status: 401, error: "Sign in is required." };
   const supabase = createClient(required("SUPABASE_URL"), required("SUPABASE_SERVICE_ROLE_KEY"), {
     auth: { autoRefreshToken: false, persistSession: false }
